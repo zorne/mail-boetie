@@ -1,0 +1,980 @@
+<title>Prospection La Boétie</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap">
+<style>
+  /* Registre tenu à la main : en-tête sobre, barre de recherche, compteurs cliquables,
+     puis un tableau à filets fins où statut et montant se changent sur place.
+     Presque aucune couleur — le vert dit « accepté », le rouge dit « agis ». Rien d'autre. */
+  :root {
+    --papier: #FAFAF9;
+    --surface: #FFFFFF;
+    --encre: #18181A;
+    --encre-2: #5E5E5C;
+    --encre-3: #90908C;
+    --trait: #E6E5E2;
+    --trait-fort: #C7C6C1;
+    --vert: #1F5B41;
+    --alerte: #A33A2A;
+    --surligne: #F2F1EE;
+    --titre: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --texte: "Libre Franklin", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --papier: #141416; --surface: #1B1B1E; --encre: #EDEDEA; --encre-2: #9B9B96;
+      --encre-3: #6D6D69; --trait: #2C2C30; --trait-fort: #434348;
+      --vert: #6FB796; --alerte: #DD8878; --surligne: #212125;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --papier: #141416; --surface: #1B1B1E; --encre: #EDEDEA; --encre-2: #9B9B96;
+    --encre-3: #6D6D69; --trait: #2C2C30; --trait-fort: #434348;
+    --vert: #6FB796; --alerte: #DD8878; --surligne: #212125;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--papier); color: var(--encre);
+    font-family: var(--texte); font-size: 14px; line-height: 1.5; margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--encre); outline-offset: 1px; }
+  .num { font-variant-numeric: tabular-nums; }
+  .cadre { max-width: 1000px; margin: 0 auto; padding-inline: 26px; }
+
+  /* ── En-tête ──────────────────────────────────────── */
+  header { background: var(--surface); border-bottom: 1px solid var(--trait-fort); }
+  .tete { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 10px 28px; padding-block: 20px 15px; }
+  .nom { font-family: var(--titre); font-size: 19px; font-weight: 700; margin: 0; }
+  .nom small { font-family: var(--texte); font-weight: 400; font-size: 13px; color: var(--encre-2); margin-left: 10px; }
+  .argent { display: flex; align-items: baseline; gap: 9px; }
+  .argent b { font-family: var(--titre); font-size: 26px; font-weight: 700; line-height: 1; }
+  .argent span { font-size: 12.5px; color: var(--encre-2); }
+  .filet { height: 2px; background: var(--trait); }
+  .filet i { display: block; height: 100%; background: var(--encre); width: 0; transition: width .6s cubic-bezier(.2,.7,.3,1); }
+
+  nav { background: var(--surface); border-bottom: 1px solid var(--trait); }
+  nav .cadre { display: flex; gap: 24px; }
+  nav button {
+    background: none; border: 0; padding: 12px 0; font-size: 13.5px; font-weight: 500;
+    color: var(--encre-2); border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  nav button[aria-current="true"] { color: var(--encre); border-bottom-color: var(--encre); font-weight: 600; }
+
+  main { padding-block: 24px 80px; }
+
+  /* ── Barre d'action ───────────────────────────────── */
+  .barre { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px; }
+  .recherche { flex: 1 1 200px; min-width: 0; position: relative; }
+  .recherche input {
+    width: 100%; background: var(--surface); border: 1px solid var(--trait-fort);
+    border-radius: 2px; padding: 8px 11px; font-size: 14px;
+  }
+  .recherche input:focus { border-color: var(--encre); outline: none; }
+  .primaire {
+    background: var(--encre); color: var(--papier); border: 1px solid var(--encre);
+    border-radius: 2px; padding: 8px 15px; font-size: 13.5px; font-weight: 600; white-space: nowrap;
+  }
+  .primaire:hover { opacity: .85; }
+  .lien { background: none; border: 0; padding: 0; font-size: 13px; color: var(--encre-2); border-bottom: 1px solid var(--trait-fort); }
+  .lien:hover { color: var(--encre); border-bottom-color: var(--encre); }
+  .liens { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
+
+  /* ── Compteurs ────────────────────────────────────── */
+  .compteurs { display: flex; flex-wrap: wrap; gap: 0 22px; margin-bottom: 4px; }
+  .compteurs button {
+    background: none; border: 0; padding: 5px 0; font-size: 13px; color: var(--encre-2);
+    display: inline-flex; align-items: baseline; gap: 6px; border-bottom: 2px solid transparent;
+  }
+  .compteurs button[aria-pressed="true"] { color: var(--encre); font-weight: 600; border-bottom-color: var(--encre); }
+  .compteurs em { font-style: normal; font-size: 12.5px; color: var(--encre-3); }
+  .compteurs button.urgent em, .compteurs button.urgent { color: var(--alerte); }
+  .compteurs button.urgent[aria-pressed="true"] { border-bottom-color: var(--alerte); }
+
+  /* ── Registre ─────────────────────────────────────── */
+  .registre { border-top: 1px solid var(--trait-fort); margin-top: 12px; }
+  .entete, .ligne { display: grid; grid-template-columns: 1fr 150px 96px 72px; gap: 14px; align-items: center; }
+  .entete {
+    padding-block: 7px; border-bottom: 1px solid var(--trait);
+    font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--encre-3);
+  }
+  .ligne { padding-block: 11px; border-bottom: 1px solid var(--trait); }
+  .ligne:hover { background: var(--surligne); }
+  .ligne.refuse .principal { opacity: .48; }
+
+  .principal { min-width: 0; }
+  .principal > button {
+    background: none; border: 0; padding: 0; text-align: left; font-size: 14.5px; font-weight: 600;
+  }
+  .principal > button:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .detail { font-size: 12.5px; color: var(--encre-2); margin-top: 2px; word-break: break-word; }
+  .detail .manque { color: var(--alerte); }
+  .detail .retard { color: var(--alerte); font-weight: 600; }
+  .argument { font-size: 12.5px; color: var(--encre-3); margin-top: 4px; }
+  .tag { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; color: var(--encre-3); margin-left: 7px; }
+
+  .cellule-statut { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .pastille { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--encre-3); flex: none; }
+  .cellule-statut.envoye .pastille { background: var(--encre-3); }
+  .cellule-statut.relance .pastille { background: var(--encre); border-color: var(--encre); }
+  .cellule-statut.oui .pastille { background: var(--vert); border-color: var(--vert); }
+  .cellule-statut.non .pastille { border-color: var(--trait-fort); background: var(--trait); }
+  select.statut {
+    appearance: none; -webkit-appearance: none; background: none; border: 1px solid transparent;
+    border-radius: 2px; padding: 3px 5px; margin-left: -5px; font-size: 13px; color: var(--encre-2);
+    min-width: 0; width: 100%; cursor: pointer;
+  }
+  select.statut:hover { border-color: var(--trait-fort); background: var(--surface); }
+  .cellule-statut.oui select.statut { color: var(--vert); font-weight: 600; }
+
+  .cellule-montant { text-align: right; }
+  input.montant {
+    width: 100%; background: none; border: 1px solid transparent; border-radius: 2px;
+    padding: 3px 5px; text-align: right; font-family: var(--titre); font-size: 14.5px;
+    font-weight: 600; font-variant-numeric: tabular-nums;
+  }
+  input.montant:hover, input.montant:focus { border-color: var(--trait-fort); background: var(--surface); outline: none; }
+  input.montant::-webkit-outer-spin-button, input.montant::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input.montant { -moz-appearance: textfield; }
+  .vide-montant { color: var(--encre-3); }
+
+  .acte {
+    justify-self: end; background: none; border: 1px solid var(--trait-fort); border-radius: 2px;
+    padding: 5px 11px; font-size: 12.5px; font-weight: 500; white-space: nowrap;
+  }
+  .acte:hover { border-color: var(--encre); }
+
+  /* ── Vides ────────────────────────────────────────── */
+  .vide { border-top: 1px solid var(--trait-fort); padding: 44px 0 10px; max-width: 50ch; }
+  .vide h2 { font-family: var(--titre); font-size: 21px; font-weight: 700; margin: 0 0 9px; }
+  .vide p { color: var(--encre-2); margin: 0 0 18px; }
+  .attente { color: var(--encre-3); padding: 32px 0; }
+
+  /* ── Panneau ──────────────────────────────────────── */
+  .voile { position: fixed; inset: 0; background: rgba(12,12,11,.42); z-index: 40; display: flex; justify-content: flex-end; }
+  .panneau {
+    background: var(--papier); width: 100%; max-width: 500px; height: 100%; overflow-y: auto;
+    border-left: 1px solid var(--trait-fort);
+    padding: 24px 26px calc(36px + env(safe-area-inset-bottom, 0px));
+    padding-top: calc(24px + env(safe-area-inset-top, 0px));
+  }
+  .panneau h2 { font-family: var(--titre); font-size: 21px; font-weight: 700; margin: 0 0 4px; }
+  .panneau .sous { color: var(--encre-2); font-size: 13px; margin: 0 0 20px; }
+  .champ { display: block; margin-bottom: 14px; }
+  .champ > span { display: block; font-size: 12.5px; color: var(--encre-2); margin-bottom: 4px; }
+  .champ input, .champ select, .champ textarea {
+    width: 100%; background: var(--surface); border: 1px solid var(--trait-fort);
+    border-radius: 2px; padding: 8px 10px; font-size: 14px;
+  }
+  .champ input:focus, .champ select:focus, .champ textarea:focus { border-color: var(--encre); outline: none; }
+  .champ textarea { resize: vertical; line-height: 1.6; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+  .lettre {
+    background: var(--surface); border: 1px solid var(--trait); padding: 16px 18px;
+    font-family: var(--titre); font-size: 14.5px; white-space: pre-wrap; line-height: 1.65;
+    max-height: 280px; overflow-y: auto; margin-bottom: 16px;
+  }
+  .lettre .objet {
+    font-family: var(--texte); font-size: 13px; font-weight: 600; display: block;
+    margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--trait);
+  }
+  .actes { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 20px; }
+  .secondaire { background: none; border: 1px solid var(--trait-fort); border-radius: 2px; padding: 8px 14px; font-size: 13.5px; font-weight: 500; }
+  .secondaire:hover { border-color: var(--encre); }
+  a.primaire { text-decoration: none; display: inline-block; }
+  .avis { font-size: 13px; color: var(--encre-2); border-left: 2px solid var(--alerte); padding: 2px 0 2px 13px; margin-bottom: 16px; }
+  .avis strong { color: var(--encre); font-weight: 600; }
+
+  /* ── Modèles ──────────────────────────────────────── */
+  .modele { border-bottom: 1px solid var(--trait); padding-block: 18px; }
+  .modele:first-child { border-top: 1px solid var(--trait-fort); }
+  .modele-tete { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 13px; margin-bottom: 11px; }
+  .modele-tete h3 { font-family: var(--titre); font-size: 16.5px; font-weight: 700; margin: 0; }
+  .modele-tete .pour { font-size: 12.5px; color: var(--encre-3); }
+  .modele-tete .lien { margin-left: auto; }
+  .jetons { font-size: 12px; color: var(--encre-3); margin: 9px 0 0; }
+  .jetons code { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 11.5px; color: var(--encre-2); }
+  .choix { display: flex; gap: 11px; align-items: flex-start; padding-block: 10px; border-bottom: 1px solid var(--trait); }
+  .choix input { margin-top: 4px; flex: none; }
+
+  @media (max-width: 760px) {
+    .cadre { padding-inline: 18px; }
+    .entete { display: none; }
+    .ligne { grid-template-columns: 1fr auto auto; gap: 8px 12px; padding-block: 13px; }
+    .principal { grid-column: 1 / -1; }
+    .cellule-statut { grid-column: 1; }
+    .cellule-montant { grid-column: 2; text-align: right; min-width: 64px; }
+    .acte { grid-column: 3; }
+    select.statut { width: auto; }
+    .duo { grid-template-columns: 1fr; }
+    .panneau { max-width: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header>
+  <div class="cadre tete">
+    <h1 class="nom">La Boétie <small>Registre de prospection</small></h1>
+    <div class="argent">
+      <b class="num" id="total">0 €</b>
+      <span id="reste">sur 1 500 €</span>
+    </div>
+  </div>
+  <div class="filet"><i id="barre"></i></div>
+</header>
+
+<nav><div class="cadre">
+  <button id="ong-prospects" aria-current="true">Entreprises</button>
+  <button id="ong-modeles">Modèles de mail</button>
+</div></nav>
+
+<main class="cadre">
+  <div id="vue-prospects">
+    <div class="barre">
+      <div class="recherche"><input id="q" type="search" placeholder="Chercher une entreprise…" autocomplete="off"></div>
+      <button class="primaire" id="btn-tournee">Lancer une tournée</button>
+      <button class="secondaire" id="btn-chercher">Trouver des entreprises</button>
+    </div>
+    <div class="liens">
+      <button class="lien" id="btn-ajouter">Ajouter à la main</button>
+      <button class="lien" id="btn-importer">Importer les anciens partenaires</button>
+    </div>
+    <div class="compteurs" id="compteurs"></div>
+    <div id="liste"><p class="attente">Ouverture du registre…</p></div>
+  </div>
+
+  <div id="vue-modeles" hidden>
+    <div class="barre"><button class="primaire" id="btn-modele">Nouveau modèle</button></div>
+    <div id="liste-modeles"><p class="attente">Chargement…</p></div>
+  </div>
+</main>
+
+<div id="panneau-hote"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var OBJECTIF = 1500;
+  var DELAI_RELANCE = 5;          // jours avant qu'un mail sans réponse demande une relance
+  var ETATS = {
+    a_contacter: "À contacter",
+    envoye: "Mail envoyé",
+    relance: "Relancé",
+    oui: "Accepté",
+    non: "Refusé"
+  };
+  var ORDRE = ["a_contacter", "envoye", "relance", "oui", "non"];
+
+  var db = null;
+  var CATALOGUE = null;   // l'annuaire des entreprises de Dordogne, chargé une seule fois
+  var prospects = [], modeles = [];
+  var filtre = "tous", recherche = "";
+  var pretProspects = false, pretModeles = false;
+  var focusMontant = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  };
+  var euros = function (n) { return (Number(n) || 0).toLocaleString("fr-FR") + " €"; };
+  var idNeuf = function () { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); };
+
+  function joursDepuis(iso) {
+    if (!iso) return null;
+    var t = new Date(iso).getTime();
+    if (isNaN(t)) return null;
+    return Math.floor((Date.now() - t) / 86400000);
+  }
+  function aRelancer(p) {
+    if (p.statut !== "envoye") return false;
+    var j = joursDepuis(p.dateEnvoi);
+    return j !== null && j >= DELAI_RELANCE;
+  }
+
+  /* Ce qu'on dit à chaque métier. Écrit une fois, parce que l'argument qui convainc une
+     boulangerie n'est pas celui qui convainc un imprimeur — et plusieurs de ces commerces
+     donnent plus volontiers en nature qu'en argent. */
+  var ARGUMENTS = {
+    "Boulangerie": "Tout le quartier y passe le matin : l'affiche sera vue par les familles qu'ils servent déjà.",
+    "Boucherie": "Clientèle de quartier, fidèle et strictement locale — le public du loto.",
+    "Opticien": "La lecture est leur métier. Une association qui fait lire des jeunes tombe juste.",
+    "Coiffeur": "Les clients attendent et lisent. Demandez aussi à poser vos flyers sur la table.",
+    "Pharmacie": "Passage familial très fort, et une image de commerce utile à la vie locale.",
+    "Librairie": "Le partenaire le plus naturel du projet. S'il ne peut pas donner, demandez des livres pour le loto.",
+    "Auto-école": "Leur cible, ce sont exactement les 16-20 ans qui seront à la conférence.",
+    "Agence immobilière": "Elles achètent de la visibilité locale toute l'année : une affiche entre dans leur budget habituel.",
+    "Restaurant": "Visibilité auprès des familles du secteur. Un repas offert peut remplacer la somme.",
+    "Imprimerie": "Demandez l'impression de l'affiche à prix coûtant : souvent plus facile à accorder qu'un chèque.",
+    "Fleuriste": "Petit commerce de centre-ville dont la clientèle est entièrement locale.",
+    "Magasin de sport": "Habitué à sponsoriser les clubs du secteur : la démarche leur est déjà familière.",
+    "Garage": "Sponsor classique des manifestations locales. Une révision offerte fait un bon lot de loto.",
+    "Assurance": "Les agents généraux ont un budget de mécénat local et cherchent à être vus près de chez eux.",
+    "Épicerie": "Commerce de proximité dont la clientèle est précisément le public de l'affiche.",
+    "Bijouterie": "Panier moyen élevé : un des rares commerces qui monte à 150 € sans hésiter.",
+    "Traiteur": "Peut offrir le buffet de la conférence en échange de la visibilité, plutôt qu'un don.",
+    "Hôtel": "S'il héberge un auteur, la nuitée offerte vaut un parrainage. Proposez l'échange.",
+    "Caviste": "Une caisse de vin fait un excellent lot de loto, souvent plus simple à obtenir qu'une somme."
+  };
+
+  /* ── Montant levé ──────────────────────────────────── */
+  function majTotal() {
+    var oui = prospects.filter(function (p) { return p.statut === "oui"; });
+    var total = oui.reduce(function (s, p) { return s + (Number(p.montant) || 0); }, 0);
+    $("total").textContent = euros(total);
+    $("barre").style.width = Math.min(100, (total / OBJECTIF) * 100) + "%";
+    $("reste").textContent = total >= OBJECTIF
+      ? "objectif atteint · " + oui.length + " partenaires"
+      : "sur 1 500 € · encore " + euros(OBJECTIF - total);
+  }
+
+  /* ── Compteurs ─────────────────────────────────────── */
+  var GROUPES = {
+    tous: function () { return true; },
+    a_contacter: function (p) { return p.statut === "a_contacter"; },
+    attente: function (p) { return p.statut === "envoye" || p.statut === "relance"; },
+    relancer: aRelancer,
+    oui: function (p) { return p.statut === "oui"; },
+    non: function (p) { return p.statut === "non"; }
+  };
+  var NOMS = {
+    tous: "Toutes", a_contacter: "À contacter", attente: "En attente",
+    relancer: "À relancer", oui: "Acceptées", non: "Refusées"
+  };
+
+  function rendreCompteurs() {
+    $("compteurs").innerHTML = Object.keys(GROUPES).map(function (k) {
+      var n = prospects.filter(GROUPES[k]).length;
+      if (k === "relancer" && n === 0 && filtre !== "relancer") return "";
+      return '<button data-f="' + k + '"' + (k === "relancer" ? ' class="urgent"' : '') +
+        ' aria-pressed="' + (filtre === k) + '">' + esc(NOMS[k]) + ' <em class="num">' + n + '</em></button>';
+    }).join("");
+  }
+
+  /* ── Registre ──────────────────────────────────────── */
+  function visibles() {
+    var q = recherche.trim().toLowerCase();
+    return prospects.filter(GROUPES[filtre] || GROUPES.tous).filter(function (p) {
+      if (!q) return true;
+      return [p.nom, p.categorie, p.quartier, p.email].join(" ").toLowerCase().indexOf(q) !== -1;
+    });
+  }
+
+  function rendreListe() {
+    var hote = $("liste");
+    if (!pretProspects) { hote.innerHTML = '<p class="attente">Ouverture du registre…</p>'; return; }
+
+    if (!prospects.length) {
+      hote.innerHTML = '<div class="vide"><h2>Le registre est vide</h2>' +
+        '<p>Pour lever 1 500 € à 85 € de moyenne, il faut dix-huit accords — donc une centaine ' +
+        'd\'entreprises démarchées. L\'annuaire contient les commerces indépendants de Dordogne, ' +
+        'commune par commune.</p>' +
+        '<button class="primaire" data-agir="chercher">Ouvrir l\'annuaire de la Dordogne</button></div>';
+      return;
+    }
+
+    var vus = visibles();
+    if (!vus.length) {
+      hote.innerHTML = '<div class="vide"><h2>Rien ici</h2><p>' +
+        (recherche ? 'Aucune entreprise ne correspond à « ' + esc(recherche) + ' ».'
+                   : 'Aucune entreprise dans cette liste pour le moment.') + '</p></div>';
+      return;
+    }
+
+    hote.innerHTML = '<div class="registre">' +
+      '<div class="entete"><span>Entreprise</span><span>Statut</span>' +
+      '<span style="text-align:right">Montant</span><span></span></div>' +
+      vus.map(ligne).join("") + '</div>';
+
+    if (focusMontant) {
+      var cible = hote.querySelector('input.montant[data-montant="' + focusMontant + '"]');
+      if (cible) { cible.focus(); cible.select(); }
+      focusMontant = null;
+    }
+  }
+
+  function ligne(p) {
+    var bits = [];
+    bits.push(p.email ? esc(p.email) : '<span class="manque">adresse mail à trouver</span>');
+    if (p.categorie) bits.push(esc(p.categorie));
+    if (p.quartier) bits.push(esc(p.quartier));
+    var j = joursDepuis(p.dateEnvoi);
+    if (p.statut === "envoye" || p.statut === "relance") {
+      if (j === 0) bits.push("envoyé aujourd'hui");
+      else if (j !== null) bits.push((aRelancer(p) ? '<span class="retard">' : '<span>') +
+        "envoyé il y a " + j + " jours" + (aRelancer(p) ? " — à relancer" : "") + "</span>");
+    }
+
+    return '<div class="ligne' + (p.statut === "non" ? " refuse" : "") + '">' +
+      '<div class="principal">' +
+        '<button data-modifier="' + p.id + '">' + esc(p.nom) + '</button>' +
+        (p.type === "ancien" ? '<span class="tag">ANCIEN PARTENAIRE</span>' : '') +
+        '<div class="detail">' + bits.join(" · ") + '</div>' +
+        (p.argument ? '<div class="argument">' + esc(p.argument) + '</div>' : '') +
+      '</div>' +
+      '<div class="cellule-statut ' + p.statut + '"><span class="pastille"></span>' +
+        '<select class="statut" data-statut="' + p.id + '" aria-label="Statut de ' + esc(p.nom) + '">' +
+          ORDRE.map(function (k) {
+            return '<option value="' + k + '"' + (p.statut === k ? " selected" : "") + '>' + esc(ETATS[k]) + '</option>';
+          }).join("") +
+        '</select></div>' +
+      '<div class="cellule-montant">' +
+        (p.statut === "oui"
+          ? '<input class="montant num" type="number" min="0" step="5" value="' + esc(p.montant || "") +
+            '" data-montant="' + p.id + '" aria-label="Montant promis par ' + esc(p.nom) + '" placeholder="0">'
+          : '<span class="vide-montant">—</span>') +
+      '</div>' +
+      '<button class="acte" data-ecrire="' + p.id + '">Écrire</button>' +
+    '</div>';
+  }
+
+  /* ── Modèles ───────────────────────────────────────── */
+  function rendreModeles() {
+    var hote = $("liste-modeles");
+    if (!pretModeles) { hote.innerHTML = '<p class="attente">Chargement…</p>'; return; }
+    if (!modeles.length) {
+      hote.innerHTML = '<div class="vide"><h2>Aucun modèle</h2>' +
+        '<p>Collez ici les mails que vous avez rédigés : ceux qui relancent vos anciens partenaires, ' +
+        'et ceux qui démarchent les nouveaux.</p>' +
+        '<button class="primaire" data-agir="modele">Nouveau modèle</button></div>';
+      return;
+    }
+    hote.innerHTML = modeles.map(function (m) {
+      return '<article class="modele"><div class="modele-tete">' +
+        '<h3>' + esc(m.nom) + '</h3>' +
+        '<span class="pour">' + (m.cible === "ancien" ? "Anciens partenaires" : "Nouveaux prospects") + '</span>' +
+        '<button class="lien" data-modele="' + m.id + '">Modifier</button></div>' +
+        '<div class="lettre"><span class="objet">' + esc(m.objet) + '</span>' + esc(m.corps) + '</div>' +
+        '<p class="jetons">Remplacés à l\'envoi : <code>{{entreprise}}</code> · <code>{{contact}}</code> · <code>{{ville}}</code></p>' +
+      '</article>';
+    }).join("");
+  }
+
+  /* ── Panneau ───────────────────────────────────────── */
+  function ouvrir(html) {
+    $("panneau-hote").innerHTML =
+      '<div class="voile" id="voile"><div class="panneau" role="dialog" aria-modal="true">' + html + '</div></div>';
+    document.body.style.overflow = "hidden";
+    $("voile").addEventListener("click", function (e) { if (e.target.id === "voile") fermer(); });
+    var premier = $("panneau-hote").querySelector("input, select, textarea");
+    if (premier) premier.focus();
+  }
+  function fermer() { $("panneau-hote").innerHTML = ""; document.body.style.overflow = ""; }
+
+  function enregistrer(p) { if (db) db.collection("prospects").doc(p.id).set(p); }
+
+  /* ── Écrire ────────────────────────────────────────── */
+  function remplir(txt, p) {
+    return String(txt || "")
+      .replace(/\{\{entreprise\}\}/g, p.nom || "")
+      .replace(/\{\{contact\}\}/g, p.contact || "Madame, Monsieur")
+      .replace(/\{\{ville\}\}/g, p.quartier || "");
+  }
+
+  function ecrire(id) {
+    var p = prospects.find(function (x) { return x.id === id; });
+    if (!p) return;
+    var utiles = modeles.filter(function (m) {
+      return p.type === "ancien" ? m.cible === "ancien" : m.cible !== "ancien";
+    });
+    if (!utiles.length) utiles = modeles;
+    if (!utiles.length) {
+      ouvrir('<h2>Aucun modèle</h2><p class="sous">Créez d\'abord un modèle dans l\'onglet voisin.</p>' +
+        '<div class="actes"><button class="secondaire" id="x-fermer">Fermer</button></div>');
+      $("x-fermer").addEventListener("click", fermer);
+      return;
+    }
+
+    ouvrir(
+      '<h2>' + esc(p.nom) + '</h2>' +
+      '<p class="sous">Relisez, puis envoyez depuis votre Gmail.</p>' +
+      (p.email ? '' : '<div class="avis"><strong>Aucune adresse enregistrée.</strong> Relevez-la sur leur ' +
+        'fiche Google ou leur site. N\'en inventez jamais une : un mail qui rebondit abîme votre réputation ' +
+        'd\'expéditeur, et les suivants partent en indésirables.</div>') +
+      '<label class="champ"><span>Destinataire</span>' +
+        '<input id="e-mail" type="email" value="' + esc(p.email || "") + '" placeholder="contact@entreprise.fr"></label>' +
+      '<label class="champ"><span>Modèle</span><select id="e-modele">' +
+        utiles.map(function (m) { return '<option value="' + m.id + '">' + esc(m.nom) + '</option>'; }).join("") +
+      '</select></label>' +
+      '<div class="lettre" id="e-lettre"></div>' +
+      '<div class="actes">' +
+        '<a class="primaire" id="e-gmail" target="_blank" rel="noopener">Ouvrir dans Gmail</a>' +
+        '<button class="secondaire" id="e-marquer">Marquer comme envoyé</button>' +
+        '<button class="lien" id="e-copier">Copier le texte</button>' +
+      '</div>'
+    );
+
+    function rafraichir() {
+      var m = modeles.find(function (x) { return x.id === $("e-modele").value; });
+      if (!m) return;
+      var objet = remplir(m.objet, p), corps = remplir(m.corps, p);
+      $("e-lettre").innerHTML = '<span class="objet">' + esc(objet) + '</span>' + esc(corps);
+      $("e-gmail").href = "https://mail.google.com/mail/?view=cm&fs=1&to=" +
+        encodeURIComponent($("e-mail").value.trim()) +
+        "&su=" + encodeURIComponent(objet) + "&body=" + encodeURIComponent(corps);
+    }
+    $("e-modele").addEventListener("change", rafraichir);
+    $("e-mail").addEventListener("input", rafraichir);
+    rafraichir();
+
+    $("e-copier").addEventListener("click", function () {
+      var m = modeles.find(function (x) { return x.id === $("e-modele").value; });
+      var txt = remplir(m.objet, p) + "\n\n" + remplir(m.corps, p);
+      var btn = this;
+      function selectionner() {
+        var r = document.createRange(); r.selectNodeContents($("e-lettre"));
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        btn.textContent = "Texte sélectionné — copiez-le";
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(function () {
+          btn.textContent = "Copié";
+          setTimeout(function () { btn.textContent = "Copier le texte"; }, 1800);
+        }, selectionner);
+      } else selectionner();
+    });
+
+    $("e-marquer").addEventListener("click", function () {
+      var m = modeles.find(function (x) { return x.id === $("e-modele").value; });
+      enregistrer(Object.assign({}, p, {
+        email: $("e-mail").value.trim(),
+        statut: p.statut === "envoye" || p.statut === "relance" ? "relance" : "envoye",
+        dateEnvoi: new Date().toISOString(),
+        dernierModele: m ? m.nom : ""
+      }));
+      fermer();
+    });
+  }
+
+  /* ── Fiche ─────────────────────────────────────────── */
+  function fiche(p) {
+    var neuf = !p;
+    p = p || { id: idNeuf(), nom: "", statut: "a_contacter", type: "nouveau", montant: "" };
+    ouvrir(
+      '<h2>' + (neuf ? "Nouvelle entreprise" : esc(p.nom)) + '</h2>' +
+      '<p class="sous">Le statut et le montant se changent aussi directement dans le registre.</p>' +
+      '<label class="champ"><span>Entreprise</span><input id="f-nom" value="' + esc(p.nom) + '"></label>' +
+      '<div class="duo">' +
+        '<label class="champ"><span>Catégorie</span><input id="f-cat" value="' + esc(p.categorie || "") + '" placeholder="Boulangerie, opticien…"></label>' +
+        '<label class="champ"><span>Quartier ou ville</span><input id="f-quartier" value="' + esc(p.quartier || "") + '"></label>' +
+      '</div>' +
+      '<div class="duo">' +
+        '<label class="champ"><span>Adresse mail</span><input id="f-mail" type="email" value="' + esc(p.email || "") + '"></label>' +
+        '<label class="champ"><span>Téléphone</span><input id="f-tel" value="' + esc(p.telephone || "") + '"></label>' +
+      '</div>' +
+      '<label class="champ"><span>Personne à contacter</span>' +
+        '<input id="f-contact" value="' + esc(p.contact || "") + '" placeholder="Laisser vide si inconnue"></label>' +
+      '<div class="duo">' +
+        '<label class="champ"><span>Statut</span><select id="f-statut">' +
+          ORDRE.map(function (k) {
+            return '<option value="' + k + '"' + (p.statut === k ? " selected" : "") + '>' + esc(ETATS[k]) + '</option>';
+          }).join("") + '</select></label>' +
+        '<label class="champ"><span>Montant promis (€)</span>' +
+          '<input id="f-montant" type="number" min="0" step="5" value="' + esc(p.montant || "") + '"></label>' +
+      '</div>' +
+      '<label class="champ"><span>Type</span><select id="f-type">' +
+        '<option value="nouveau"' + (p.type !== "ancien" ? " selected" : "") + '>Nouveau prospect</option>' +
+        '<option value="ancien"' + (p.type === "ancien" ? " selected" : "") + '>Ancien partenaire</option>' +
+      '</select></label>' +
+      '<label class="champ"><span>Notes</span><textarea id="f-notes" rows="3">' + esc(p.notes || "") + '</textarea></label>' +
+      '<div class="actes">' +
+        '<button class="primaire" id="f-ok">Enregistrer</button>' +
+        '<button class="secondaire" id="f-annuler">Annuler</button>' +
+        (neuf ? '' : '<button class="lien" id="f-suppr">Retirer du registre</button>') +
+      '</div>'
+    );
+    $("f-ok").addEventListener("click", function () {
+      var nom = $("f-nom").value.trim();
+      if (!nom) { $("f-nom").focus(); return; }
+      enregistrer({
+        id: p.id, nom: nom,
+        categorie: $("f-cat").value.trim(), quartier: $("f-quartier").value.trim(),
+        email: $("f-mail").value.trim(), telephone: $("f-tel").value.trim(),
+        contact: $("f-contact").value.trim(), statut: $("f-statut").value,
+        montant: Number($("f-montant").value) || 0, type: $("f-type").value,
+        notes: $("f-notes").value.trim(), argument: p.argument || "",
+        dateEnvoi: p.dateEnvoi || "", dernierModele: p.dernierModele || ""
+      });
+      fermer();
+    });
+    $("f-annuler").addEventListener("click", fermer);
+    if (!neuf) $("f-suppr").addEventListener("click", function () {
+      if (db) db.collection("prospects").doc(p.id).delete();
+      fermer();
+    });
+  }
+
+  /* ── Import ────────────────────────────────────────── */
+  function importer() {
+    ouvrir(
+      '<h2>Anciens partenaires</h2>' +
+      '<p class="sous">Une entreprise par ligne, séparée par des virgules.</p>' +
+      '<div class="avis">Ils entrent « à contacter » et reçoivent vos modèles de <strong>relance</strong>, ' +
+      'jamais ceux de prospection.</div>' +
+      '<label class="champ"><span>Nom, mail, catégorie, montant de l\'an dernier</span>' +
+        '<textarea id="i-texte" rows="9" placeholder="Boulangerie Martin, contact@martin.fr, Boulangerie, 100&#10;Optique Centrale, bonjour@optique-centrale.fr, Opticien, 50"></textarea></label>' +
+      '<div class="actes"><button class="primaire" id="i-ok">Inscrire au registre</button>' +
+      '<button class="secondaire" id="i-annuler">Annuler</button></div>'
+    );
+    $("i-annuler").addEventListener("click", fermer);
+    $("i-ok").addEventListener("click", function () {
+      $("i-texte").value.split("\n").forEach(function (l) {
+        var c = l.split(",").map(function (x) { return x.trim(); });
+        if (!c[0]) return;
+        enregistrer({
+          id: idNeuf(), nom: c[0], email: c[1] || "", categorie: c[2] || "",
+          montant: Number(c[3]) || 0, statut: "a_contacter", type: "ancien",
+          quartier: "", telephone: "", contact: "", notes: "", argument: "", dateEnvoi: ""
+        });
+      });
+      fermer();
+    });
+  }
+
+  /* ── Tournée d'envoi ──────────────────────────────── */
+
+  /* Envoyer cent mails un par un, c'est quatre clics chacun : ouvrir la fiche, choisir le
+     modèle, envoyer, marquer. La tournée réduit ça à UN clic. Elle prend les entreprises du
+     filtre en cours qui ont une adresse, choisit le bon modèle pour chacune (premier contact ou
+     relance, prospect ou ancien partenaire), ouvre Gmail déjà rempli, marque l'envoi et passe à
+     la suivante. Vous ne naviguez plus : vous envoyez. */
+  var tournee = null;
+
+  function modelePour(p) {
+    var pour = p.type === "ancien" ? "ancien" : "nouveau";
+    var utiles = modeles.filter(function (m) {
+      return pour === "ancien" ? m.cible === "ancien" : m.cible !== "ancien";
+    });
+    if (!utiles.length) utiles = modeles.slice();
+    if (!utiles.length) return null;
+    // Jamais contacté → le premier modèle. Déjà contacté → le suivant, c'est la relance.
+    var rang = p.statut === "a_contacter" ? 0 : Math.min(1, utiles.length - 1);
+    return utiles[rang];
+  }
+
+  function lancerTournee() {
+    var file = visibles().filter(function (p) {
+      return p.email && p.statut !== "oui" && p.statut !== "non";
+    });
+    if (!modeles.length) {
+      ouvrir('<h2>Aucun modèle</h2><p class="sous">Créez d\'abord un modèle de mail dans l\'onglet voisin.</p>' +
+        '<div class="actes"><button class="secondaire" id="t-x">Fermer</button></div>');
+      $("t-x").addEventListener("click", fermer);
+      return;
+    }
+    if (!file.length) {
+      var sansMail = visibles().filter(function (p) {
+        return !p.email && p.statut !== "oui" && p.statut !== "non";
+      }).length;
+      ouvrir('<h2>Rien à envoyer</h2>' +
+        '<p class="sous">' + (sansMail
+          ? sansMail + " entreprise" + (sansMail > 1 ? "s" : "") + " de cette liste " +
+            (sansMail > 1 ? "attendent" : "attend") + " encore une adresse mail."
+          : "Aucune entreprise en attente dans cette liste.") + '</p>' +
+        '<div class="actes"><button class="secondaire" id="t-x">Fermer</button></div>');
+      $("t-x").addEventListener("click", fermer);
+      return;
+    }
+    tournee = { file: file.map(function (p) { return p.id; }), i: 0, envoyes: 0 };
+    etapeTournee();
+  }
+
+  function etapeTournee() {
+    if (!tournee) return;
+    if (tournee.i >= tournee.file.length) {
+      var n = tournee.envoyes;
+      ouvrir('<h2>Tournée terminée</h2>' +
+        '<p class="sous">' + n + ' mail' + (n > 1 ? 's' : '') + ' envoyé' + (n > 1 ? 's' : '') +
+        '. Ils réapparaîtront dans « À relancer » dans cinq jours.</p>' +
+        '<div class="actes"><button class="primaire" id="t-x">Terminer</button></div>');
+      $("t-x").addEventListener("click", function () { tournee = null; fermer(); });
+      return;
+    }
+    var p = prospects.find(function (x) { return x.id === tournee.file[tournee.i]; });
+    if (!p) { tournee.i += 1; etapeTournee(); return; }
+    var m = modelePour(p);
+    if (!m) { tournee.i += 1; etapeTournee(); return; }
+
+    var objet = remplir(m.objet, p), corps = remplir(m.corps, p);
+    var lien = "https://mail.google.com/mail/?view=cm&fs=1&to=" + encodeURIComponent(p.email) +
+      "&su=" + encodeURIComponent(objet) + "&body=" + encodeURIComponent(corps);
+
+    ouvrir(
+      '<p class="sous" style="margin-bottom:6px">Tournée · ' + (tournee.i + 1) + ' sur ' + tournee.file.length + '</p>' +
+      '<h2>' + esc(p.nom) + '</h2>' +
+      '<p class="sous">' + esc(p.email) + ' · ' + esc(m.nom) + '</p>' +
+      '<div class="lettre"><span class="objet">' + esc(objet) + '</span>' + esc(corps) + '</div>' +
+      '<div class="actes">' +
+        '<a class="primaire" id="t-envoi" href="' + esc(lien) + '" target="_blank" rel="noopener">Envoyer et passer à la suivante</a>' +
+        '<button class="secondaire" id="t-passer">Passer</button>' +
+        '<button class="lien" id="t-stop">Arrêter la tournée</button>' +
+      '</div>'
+    );
+
+    // Le clic ouvre Gmail dans un onglet, marque l'envoi, et affiche déjà la suivante.
+    $("t-envoi").addEventListener("click", function () {
+      enregistrer(Object.assign({}, p, {
+        statut: p.statut === "a_contacter" ? "envoye" : "relance",
+        dateEnvoi: new Date().toISOString(),
+        dernierModele: m.nom
+      }));
+      tournee.envoyes += 1; tournee.i += 1;
+      setTimeout(etapeTournee, 120);
+    });
+    $("t-passer").addEventListener("click", function () { tournee.i += 1; etapeTournee(); });
+    $("t-stop").addEventListener("click", function () { tournee = null; fermer(); });
+  }
+
+  /* ── Recherche d'entreprises ─────────────────────── */
+
+  /* L'annuaire vient du registre public des entreprises (base SIRENE), filtré en amont :
+     uniquement des établissements de Dordogne, actifs, dont le SIÈGE est en Dordogne et qui
+     comptent au plus trois établissements. Autrement dit, des indépendants — une succursale de
+     chaîne nationale ne décide jamais d'un parrainage local sur place. */
+  function chargerCatalogue() {
+    if (CATALOGUE) return Promise.resolve(CATALOGUE);
+    return fetch("dordogne.json").then(function (r) {
+      if (!r.ok) throw new Error("annuaire introuvable");
+      return r.json();
+    }).then(function (d) { CATALOGUE = d; return d; });
+  }
+
+  function chercher() {
+    ouvrir(
+      '<h2>Trouver des entreprises</h2>' +
+      '<p class="sous">Commerces et entreprises réellement implantés en Dordogne.</p>' +
+      '<div id="c-corps"><p class="attente">Ouverture de l\'annuaire…</p></div>'
+    );
+
+    chargerCatalogue().then(function (d) {
+      var deja = {};
+      prospects.forEach(function (p) { deja[(p.nom || "").toLowerCase()] = true; });
+      var fonds = d.entreprises.filter(function (e) { return !deja[e.n.toLowerCase()]; });
+
+      var communes = [], cats = [], vuC = {}, vuK = {};
+      fonds.forEach(function (e) {
+        if (e.v && !vuC[e.v]) { vuC[e.v] = 1; communes.push(e.v); }
+        if (e.c && !vuK[e.c]) { vuK[e.c] = 1; cats.push(e.c); }
+      });
+      communes.sort(function (a, b) { return a.localeCompare(b, "fr"); });
+      cats.sort(function (a, b) { return a.localeCompare(b, "fr"); });
+
+      $("c-corps").innerHTML =
+        '<div class="avis"><strong>Le registre public ne publie pas les adresses mail.</strong> ' +
+        'Vous avez le nom et l\'adresse exacts : cherchez l\'entreprise sur Google pour relever ' +
+        'la sienne. N\'en inventez jamais une — un mail qui rebondit fait classer les suivants ' +
+        'en indésirables.</div>' +
+        '<div class="duo">' +
+          '<label class="champ"><span>Commune</span><select id="c-ville">' +
+            '<option value="">Toute la Dordogne</option>' +
+            communes.map(function (v) { return '<option>' + esc(v) + '</option>'; }).join("") +
+          '</select></label>' +
+          '<label class="champ"><span>Activité</span><select id="c-cat">' +
+            '<option value="">Toutes</option>' +
+            cats.map(function (c) { return '<option>' + esc(c) + '</option>'; }).join("") +
+          '</select></label>' +
+        '</div>' +
+        '<label class="champ"><span>Chercher par nom</span>' +
+          '<input id="c-q" type="search" placeholder="Nom de l\'entreprise…" autocomplete="off"></label>' +
+        '<div id="c-liste"></div>';
+
+      var PLAFOND = 60;
+
+      function resultats() {
+        var v = $("c-ville").value, c = $("c-cat").value, q = $("c-q").value.trim().toLowerCase();
+        return fonds.filter(function (e) {
+          if (v && e.v !== v) return false;
+          if (c && e.c !== c) return false;
+          if (q && (e.n + " " + e.a).toLowerCase().indexOf(q) === -1) return false;
+          return true;
+        });
+      }
+
+      function peindre() {
+        var r = resultats(), montres = r.slice(0, PLAFOND);
+        if (!r.length) {
+          $("c-liste").innerHTML = '<p class="attente">Aucune entreprise ne correspond. ' +
+            'Élargissez la commune ou l\'activité.</p>';
+          return;
+        }
+        $("c-liste").innerHTML =
+          '<p class="sous" style="margin:18px 0 2px">' + r.length + ' entreprise' + (r.length > 1 ? 's' : '') +
+            (r.length > PLAFOND ? ' — les ' + PLAFOND + ' premières sont affichées' : '') +
+            ' · <button class="lien" type="button" id="c-tout">Tout cocher</button></p>' +
+          montres.map(function (e, i) {
+            return '<label class="choix"><input type="checkbox" class="c-case" data-i="' + i + '">' +
+              '<span style="min-width:0"><strong>' + esc(e.n) + '</strong>' +
+              '<div class="detail">' + esc(e.c) + ' · ' + esc(e.a || "adresse non publiée") +
+              ', ' + esc(e.cp) + ' ' + esc(e.v) + '</div>' +
+              '<div class="argument">' + esc(ARGUMENTS[e.c] || "") + '</div></span></label>';
+          }).join("") +
+          '<div class="actes"><button class="primaire" id="c-ajouter" disabled>Inscrire la sélection</button></div>';
+
+        var cases = Array.prototype.slice.call(document.querySelectorAll(".c-case"));
+        function compter() {
+          var n = cases.filter(function (x) { return x.checked; }).length;
+          var b = $("c-ajouter");
+          b.disabled = n === 0;
+          b.textContent = n === 0 ? "Inscrire la sélection"
+            : "Inscrire " + n + " entreprise" + (n > 1 ? "s" : "");
+        }
+        cases.forEach(function (x) { x.addEventListener("change", compter); });
+        $("c-tout").addEventListener("click", function () {
+          var tout = cases.some(function (x) { return !x.checked; });
+          cases.forEach(function (x) { x.checked = tout; });
+          this.textContent = tout ? "Tout décocher" : "Tout cocher";
+          compter();
+        });
+        $("c-ajouter").addEventListener("click", function () {
+          cases.forEach(function (x) {
+            if (!x.checked) return;
+            var e = montres[Number(x.dataset.i)];
+            enregistrer({
+              id: idNeuf(), nom: e.n, categorie: e.c, quartier: e.v,
+              telephone: "", email: "", contact: "",
+              notes: (e.a ? e.a + ", " : "") + e.cp + " " + e.v,
+              argument: ARGUMENTS[e.c] || "",
+              statut: "a_contacter", type: "nouveau", montant: 0, dateEnvoi: ""
+            });
+          });
+          fermer();
+        });
+      }
+
+      $("c-ville").addEventListener("change", peindre);
+      $("c-cat").addEventListener("change", peindre);
+      $("c-q").addEventListener("input", peindre);
+      peindre();
+
+    }, function () {
+      $("c-corps").innerHTML = '<p class="attente">L\'annuaire n\'a pas pu être ouvert. ' +
+        'Rechargez la page, ou inscrivez les entreprises à la main.</p>';
+    });
+  }
+
+  /* ── Modèle ────────────────────────────────────────── */
+  function editerModele(id) {
+    var m = id ? modeles.find(function (x) { return x.id === id; }) : null;
+    var neuf = !m;
+    m = m || { id: idNeuf(), nom: "", objet: "", corps: "", cible: "nouveau" };
+    ouvrir(
+      '<h2>' + (neuf ? "Nouveau modèle" : "Modifier le modèle") + '</h2>' +
+      '<p class="sous">{{entreprise}}, {{contact}} et {{ville}} sont remplacés à l\'envoi.</p>' +
+      '<div class="duo">' +
+        '<label class="champ"><span>Nom du modèle</span><input id="m-nom" value="' + esc(m.nom) + '"></label>' +
+        '<label class="champ"><span>Pour qui</span><select id="m-cible">' +
+          '<option value="nouveau"' + (m.cible !== "ancien" ? " selected" : "") + '>Nouveaux prospects</option>' +
+          '<option value="ancien"' + (m.cible === "ancien" ? " selected" : "") + '>Anciens partenaires</option>' +
+        '</select></label>' +
+      '</div>' +
+      '<label class="champ"><span>Objet</span><input id="m-objet" value="' + esc(m.objet) + '"></label>' +
+      '<label class="champ"><span>Message</span><textarea id="m-corps" rows="14">' + esc(m.corps) + '</textarea></label>' +
+      '<div class="actes">' +
+        '<button class="primaire" id="m-ok">Enregistrer</button>' +
+        '<button class="secondaire" id="m-annuler">Annuler</button>' +
+        (neuf ? '' : '<button class="lien" id="m-suppr">Supprimer</button>') +
+      '</div>'
+    );
+    $("m-ok").addEventListener("click", function () {
+      var nom = $("m-nom").value.trim();
+      if (!nom) { $("m-nom").focus(); return; }
+      if (db) db.collection("modeles").doc(m.id).set({
+        id: m.id, nom: nom, cible: $("m-cible").value,
+        objet: $("m-objet").value, corps: $("m-corps").value
+      });
+      fermer();
+    });
+    $("m-annuler").addEventListener("click", fermer);
+    if (!neuf) $("m-suppr").addEventListener("click", function () {
+      if (db) db.collection("modeles").doc(m.id).delete();
+      fermer();
+    });
+  }
+
+  /* ── Onglets, clics, modifications sur place ───────── */
+  function voirOnglet(n) {
+    $("vue-prospects").hidden = n !== "prospects";
+    $("vue-modeles").hidden = n !== "modeles";
+    $("ong-prospects").setAttribute("aria-current", String(n === "prospects"));
+    $("ong-modeles").setAttribute("aria-current", String(n === "modeles"));
+  }
+  $("ong-prospects").addEventListener("click", function () { voirOnglet("prospects"); });
+  $("ong-modeles").addEventListener("click", function () { voirOnglet("modeles"); });
+  $("btn-chercher").addEventListener("click", chercher);
+  $("btn-tournee").addEventListener("click", lancerTournee);
+  $("btn-ajouter").addEventListener("click", function () { fiche(null); });
+  $("btn-importer").addEventListener("click", importer);
+  $("btn-modele").addEventListener("click", function () { editerModele(null); });
+  $("q").addEventListener("input", function () { recherche = this.value; rendreListe(); });
+
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-f],[data-ecrire],[data-modifier],[data-modele],[data-agir]");
+    if (!t) return;
+    if (t.dataset.f) { filtre = t.dataset.f; rendreCompteurs(); rendreListe(); }
+    else if (t.dataset.ecrire) ecrire(t.dataset.ecrire);
+    else if (t.dataset.modifier) fiche(prospects.find(function (p) { return p.id === t.dataset.modifier; }));
+    else if (t.dataset.modele) editerModele(t.dataset.modele);
+    else if (t.dataset.agir === "chercher") chercher();
+    else if (t.dataset.agir === "modele") editerModele(null);
+  });
+
+  // Statut et montant changés directement dans le registre : c'est le geste le plus fréquent
+  // de la journée, il ne doit pas demander d'ouvrir une fiche.
+  $("liste").addEventListener("change", function (e) {
+    var sel = e.target.closest("select.statut");
+    if (sel) {
+      var p = prospects.find(function (x) { return x.id === sel.dataset.statut; });
+      if (!p) return;
+      var maj = Object.assign({}, p, { statut: sel.value });
+      if (sel.value === "envoye" || sel.value === "relance") maj.dateEnvoi = p.dateEnvoi || new Date().toISOString();
+      if (sel.value === "oui" && !Number(p.montant)) focusMontant = p.id;
+      enregistrer(maj);
+      return;
+    }
+    var inp = e.target.closest("input.montant");
+    if (inp) {
+      var q = prospects.find(function (x) { return x.id === inp.dataset.montant; });
+      if (!q) return;
+      enregistrer(Object.assign({}, q, { montant: Number(inp.value) || 0 }));
+    }
+  });
+  $("liste").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && e.target.closest("input.montant")) e.target.blur();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") fermer(); });
+
+  /* ── Branchement ───────────────────────────────────── */
+  function trier(a, b) {
+    if (aRelancer(a) !== aRelancer(b)) return aRelancer(a) ? -1 : 1;
+    var d = ORDRE.indexOf(a.statut) - ORDRE.indexOf(b.statut);
+    return d !== 0 ? d : String(a.nom || "").localeCompare(String(b.nom || ""), "fr");
+  }
+
+  Promise.resolve(window.claude && window.claude.use ? window.claude.use("db") : null).then(function (base) {
+    db = base;
+    if (!db) {
+      pretProspects = pretModeles = true;
+      $("liste").innerHTML = '<div class="vide"><h2>Connexion requise</h2>' +
+        '<p>Connectez-vous à Claude pour ouvrir le registre partagé avec votre camarade.</p></div>';
+      $("liste-modeles").innerHTML = "";
+      return;
+    }
+    db.collection("prospects").onSnapshot(function (snap) {
+      prospects = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data() || {}); }).sort(trier);
+      pretProspects = true; majTotal(); rendreCompteurs(); rendreListe();
+    }, function () { pretProspects = true; rendreListe(); });
+    db.collection("modeles").onSnapshot(function (snap) {
+      modeles = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data() || {}); })
+        .sort(function (a, b) { return String(a.nom).localeCompare(String(b.nom), "fr"); });
+      pretModeles = true; rendreModeles();
+    }, function () { pretModeles = true; rendreModeles(); });
+  }, function () { pretProspects = pretModeles = true; rendreListe(); rendreModeles(); });
+
+  majTotal();
+})();
+</script>

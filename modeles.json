@@ -1,0 +1,39 @@
+{
+  "modeles": [
+    {
+      "cible": "nouveau",
+      "corps": "Bonjour {{contact}},\n\nNous sommes deux élèves de l'association La Boétie. Nous faisons découvrir la lecture aux jeunes, et nous organisons cette année une conférence avec plusieurs auteurs, suivie d'un loto ouvert à tous.\n\nPour la financer, nous cherchons des partenaires près de chez nous. En échange, votre entreprise apparaît sur l'affiche de l'événement, vue par les familles et les jeunes de {{ville}}.\n\nTrois formules :\n\n• 50 € — votre nom sur l'affiche\n• 100 € — votre logo sur l'affiche, et un lot du loto annoncé à votre nom\n• 150 € — votre logo en grand, vos flyers sur place, et une photo avec les auteurs\n\nIl ne s'agit pas d'un don mais d'un parrainage : nous vous remettons une facture, et la somme entre dans votre budget de communication.\n\nPouvons-nous passer vous voir cette semaine ? Cinq minutes suffisent.\n\nBien à vous,\n\n[Vos deux prénoms]\nAssociation La Boétie",
+      "id": "n1",
+      "nom": "1 · Premier contact",
+      "objet": "Votre enseigne sur l'affiche de notre conférence ?"
+    },
+    {
+      "cible": "nouveau",
+      "corps": "Bonjour {{contact}},\n\nJe me permets de revenir vers vous au sujet de notre conférence d'auteurs.\n\nNous bouclons l'affiche bientôt, et nous aimerions savoir si {{entreprise}} souhaite y figurer. La première formule est à 50 €.\n\nSi c'est plus simple, nous pouvons passer directement à votre convenance.\n\nBien à vous,\n\n[Vos deux prénoms]\nAssociation La Boétie",
+      "id": "n2",
+      "nom": "2 · Relance à J+5",
+      "objet": "Re: Votre enseigne sur l'affiche de notre conférence ?"
+    },
+    {
+      "cible": "ancien",
+      "corps": "Bonjour {{contact}},\n\nVous aviez soutenu La Boétie l'an dernier, et nous ne l'avons pas oublié.\n\nCette année, nous allons plus loin : une conférence avec plusieurs auteurs, qui échangeront entre eux et avec les jeunes, suivie d'un loto.\n\nNous serions heureux de retrouver {{entreprise}} sur l'affiche. Les formules sont les mêmes : 50, 100 ou 150 €, avec une visibilité croissante.\n\nUn mot de votre part suffit, nous nous occupons du reste.\n\nBien à vous,\n\n[Vos deux prénoms]\nAssociation La Boétie",
+      "id": "a1",
+      "nom": "3 · Reconduction",
+      "objet": "On remet ça cette année ?"
+    },
+    {
+      "cible": "ancien",
+      "corps": "Bonjour {{contact}},\n\nJe reviens vers vous rapidement : nous préparons la maquette de l'affiche et j'aimerais y réserver la place de {{entreprise}}.\n\nFaut-il que je la garde ? Un oui ou un non m'aide autant l'un que l'autre.\n\nBien à vous,\n\n[Vos deux prénoms]\nAssociation La Boétie",
+      "id": "a2",
+      "nom": "4 · Relance reconduction",
+      "objet": "Re: On remet ça cette année ?"
+    },
+    {
+      "cible": "ancien",
+      "corps": "Bonjour {{contact}},\n\nL'affiche part à l'impression, et je voulais vous prévenir avant de la boucler.\n\nSi {{entreprise}} souhaite y figurer cette année, dites-le-moi d'ici là. Sinon, aucun souci — et merci encore pour votre soutien de l'an dernier.\n\nBien à vous,\n\n[Vos deux prénoms]\nAssociation La Boétie",
+      "id": "a3",
+      "nom": "5 · Dernier rappel avant impression",
+      "objet": "L'affiche part à l'impression"
+    }
+  ]
+}
