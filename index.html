@@ -765,10 +765,9 @@
       cats.sort(function (a, b) { return a.localeCompare(b, "fr"); });
 
       $("c-corps").innerHTML =
-        '<div class="avis"><strong>Le registre public ne publie pas les adresses mail.</strong> ' +
-        'Vous avez le nom et l\'adresse exacts : cherchez l\'entreprise sur Google pour relever ' +
-        'la sienne. N\'en inventez jamais une — un mail qui rebondit fait classer les suivants ' +
-        'en indésirables.</div>' +
+        '<div class="avis"><strong>Contacts réels, relevés sur OpenStreetMap et sur les sites ' +
+        'des entreprises.</strong> Toutes ont un téléphone ou une adresse mail. Aucune adresse ' +
+        'n\'est devinée : celles qui manquaient restent vides.</div>' +
         '<div class="duo">' +
           '<label class="champ"><span>Commune</span><select id="c-ville">' +
             '<option value="">Toute la Dordogne</option>' +
@@ -790,7 +789,7 @@
         return fonds.filter(function (e) {
           if (v && e.v !== v) return false;
           if (c && e.c !== c) return false;
-          if (q && (e.n + " " + e.a).toLowerCase().indexOf(q) === -1) return false;
+          if (q && (e.n + " " + e.v + " " + e.mail).toLowerCase().indexOf(q) === -1) return false;
           return true;
         });
       }
@@ -809,8 +808,8 @@
           montres.map(function (e, i) {
             return '<label class="choix"><input type="checkbox" class="c-case" data-i="' + i + '">' +
               '<span style="min-width:0"><strong>' + esc(e.n) + '</strong>' +
-              '<div class="detail">' + esc(e.c) + ' · ' + esc(e.a || "adresse non publiée") +
-              ', ' + esc(e.cp) + ' ' + esc(e.v) + '</div>' +
+              '<div class="detail">' + esc(e.c) + ' · ' + esc(e.v) +
+              (e.mail ? ' · ' + esc(e.mail) : '') + (e.tel ? ' · ' + esc(e.tel) : '') + '</div>' +
               '<div class="argument">' + esc(ARGUMENTS[e.c] || "") + '</div></span></label>';
           }).join("") +
           '<div class="actes"><button class="primaire" id="c-ajouter" disabled>Inscrire la sélection</button></div>';
@@ -836,9 +835,8 @@
             var e = montres[Number(x.dataset.i)];
             enregistrer({
               id: idNeuf(), nom: e.n, categorie: e.c, quartier: e.v,
-              telephone: "", email: "", contact: "",
-              notes: (e.a ? e.a + ", " : "") + e.cp + " " + e.v,
-              argument: ARGUMENTS[e.c] || "",
+              telephone: e.tel || "", email: e.mail || "", contact: "",
+              notes: e.a || "", argument: ARGUMENTS[e.c] || "",
               statut: "a_contacter", type: "nouveau", montant: 0, dateEnvoi: ""
             });
           });

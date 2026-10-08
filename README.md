@@ -20,30 +20,37 @@ décide, souvent en trente secondes.
 
 | Fichier | Rôle |
 |---|---|
-| `index.html` | L'application complète : registre, modèles de mail, tournée d'envoi |
-| `dordogne.json` | L'annuaire : 639 entreprises indépendantes, 197 communes de Dordogne |
-| `modeles.json` | Sauvegarde des 5 modèles de mail (3 relances, 2 prospections) |
-| `outils/annuaire-dordogne.py` | Le script qui reconstruit l'annuaire depuis la base SIRENE |
+| `apps-script/Code.gs` | **Le moteur** : envoi, détection des réponses, relances automatiques |
+| `apps-script/README.md` | La notice d'installation, pas à pas |
+| `index.html` | L'application de consultation : registre, modèles, tournée d'envoi |
+| `dordogne.json` | L'annuaire : 823 entreprises joignables, 253 communes |
+| `modeles.json` | Les 5 modèles de mail (3 relances, 2 prospections) |
+| `outils/contacts-osm.py` | Construit l'annuaire depuis OpenStreetMap et les sites |
+| `outils/communes-et-tri.py` | Retrouve les communes et écarte les adresses douteuses |
+| `outils/annuaire-dordogne.py` | Variante bâtie sur la base SIRENE (sans contacts) |
 
-## L'annuaire
+## L'annuaire — 823 entreprises réellement joignables
 
-Il vient du **registre public des entreprises** (base SIRENE, données ouvertes de l'État), via
-l'API `recherche-entreprises.api.gouv.fr`. Trois filtres sont appliqués :
+**310 avec une adresse mail, 757 avec un téléphone, 253 communes.** Périgueux 52, Bergerac 45,
+Sarlat 44, Terrasson 39, Montignac 19, Eymet 16, Brantôme 15…
 
-- **siège en Dordogne** — une succursale de chaîne nationale ne décide jamais d'un parrainage
-  local sur place ;
-- **au plus trois établissements** — des indépendants, pas des groupes régionaux ;
-- **pas de nom de personne seul** — les entrepreneurs individuels sans enseigne commerciale sont
-  écartés : inexploitables, et ce sont des données personnelles.
+Les contacts viennent d'**OpenStreetMap** (licence ODbL), complétés en allant lire les sites
+des entreprises quand la carte n'avait pas l'adresse mail. Les communes manquantes ont été
+retrouvées par géocodage inverse via l'API Adresse de l'État.
 
-Le registre public ne publie **pas** les adresses mail. Elles doivent être relevées une par une
-sur le site ou la fiche Google de chaque entreprise. L'application signale en rouge toute fiche
-qui en manque.
+Quatre filtres :
 
-Pour reconstruire l'annuaire :
+- **pas de chaîne nationale** — une succursale ne décide jamais d'un parrainage local sur place ;
+- **joignable** — une fiche sans mail ni téléphone ne sert à rien ;
+- **pas d'adresse partagée** — une même adresse sur plusieurs commerces sans lien, c'est une
+  extraction ratée, pas un contact ;
+- **pas d'adresse générique suspecte** — `contact@gmail.com` et consorts sont écartés.
+
+Aucune adresse n'est devinée. Celles qui manquaient restent vides : un mail qui rebondit fait
+classer tous les suivants en indésirables.
 
 ```bash
-python3 outils/annuaire-dordogne.py
+python3 outils/contacts-osm.py && python3 outils/communes-et-tri.py
 ```
 
 ## Le parrainage n'est pas un don
@@ -58,7 +65,17 @@ Trois paliers, parce qu'une fourchette « entre 50 et 150 € » fait que tout l
 - **100 € — Partenaire** : logo sur l'affiche, un lot du loto annoncé à son nom
 - **150 € — Partenaire principal** : logo en grand, flyers sur place, photo avec les auteurs
 
-## L'application
+## Comment ça marche
+
+Deux morceaux, chacun pour ce qu'il sait faire :
+
+1. **`apps-script/Code.gs`** tourne dans le compte `prixlaboetie@gmail.com`. C'est lui qui
+   envoie et qui suit, parce qu'il est le seul à pouvoir lire la boîte mail. Installation :
+   voir [apps-script/README.md](apps-script/README.md).
+2. **`index.html`** est l'application de consultation, pour parcourir l'annuaire et préparer
+   les envois à la main.
+
+## L'application de consultation
 
 Elle est publiée comme Artifact Claude et s'appuie sur son stockage partagé : les deux membres
 du binôme voient le même registre, mis à jour en direct.
