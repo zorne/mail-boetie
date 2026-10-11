@@ -69,26 +69,16 @@ Trois paliers, parce qu'une fourchette « entre 50 et 150 € » fait que tout l
 
 ## Comment ça marche
 
-Deux morceaux, chacun pour ce qu'il sait faire :
+⚠️ **Le tableur est la seule source de vérité.** Tout le suivi — envois, réponses, relances,
+montants — y vit. Installation : [apps-script/README.md](apps-script/README.md).
 
-1. **`apps-script/Code.gs`** tourne dans le compte `prixlaboetie@gmail.com`. C'est lui qui
-   envoie et qui suit, parce qu'il est le seul à pouvoir lire la boîte mail. Installation :
-   voir [apps-script/README.md](apps-script/README.md).
-2. **`index.html`** est l'application de consultation, pour parcourir l'annuaire et préparer
-   les envois à la main.
+`index.html` est une application séparée, utile pour **parcourir l'annuaire** et préparer des
+envois à la main. Elle tient son propre registre, qui **ne communique pas** avec le tableur :
+une page web ne peut pas lire une feuille Google. Tenir les deux à jour en parallèle finirait
+par donner deux totaux différents, et on ne saurait plus lequel croire. Servez-vous-en pour
+chercher et consulter, jamais pour suivre.
 
 ## L'application de consultation
-
-Elle est publiée comme Artifact Claude et s'appuie sur son stockage partagé : les deux membres
-du binôme voient le même registre, mis à jour en direct.
-
-- **Registre** — statut et montant se changent directement dans le tableau. Passer une ligne à
-  « Accepté » place le curseur dans la case montant.
-- **Relances** — la date d'envoi est enregistrée ; au bout de cinq jours la ligne remonte en
-  tête sous « À relancer ».
-- **Tournée d'envoi** — parcourt les entreprises du filtre en cours qui ont une adresse,
-  choisit le bon modèle pour chacune, ouvre Gmail pré-rempli, marque l'envoi et passe à la
-  suivante.
 
 L'envoi passe par Gmail plutôt que par une API d'envoi : cent mails identiques partis d'un
 domaine neuf finissent en indésirables, alors qu'un mail parti d'une vraie adresse arrive en

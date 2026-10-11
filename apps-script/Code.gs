@@ -11,7 +11,11 @@
 
 const EXPEDITEUR      = "prixlaboetie@gmail.com";
 const NOM_EXPEDITEUR  = "Association La Boétie";
-const EN_COPIE        = "";   // mail du camarade, pour recevoir aussi les alertes
+// Le mail du camarade est demandé à l'installation : une constante vide ici
+// resterait vide, et il ne recevrait jamais rien.
+function enCopie_() {
+  return PropertiesService.getScriptProperties().getProperty("camarade") || "";
+}
 const OBJECTIF_EUROS  = 1500;
 
 const MAX_PAR_JOUR    = 35;   // Au-delà, Gmail classe les envois en indésirables.
@@ -30,6 +34,7 @@ const NB_COLONNES = 15;
 
 const STATUTS = {
   aContacter: "À contacter",
+  aAppeler: "À appeler",
   envoye: "Envoyé",
   relance: "Relancé",
   repondu: "A répondu",
@@ -49,10 +54,15 @@ function onOpen() {
     .addItem("1. Installer (à faire une seule fois)", "installer")
     .addItem("2. Importer l'annuaire de Dordogne", "importerAnnuaire")
     .addSeparator()
+    .addItem("S'envoyer un mail d'essai", "mailDEssai")
+    .addItem("Simuler le lot du jour (sans envoyer)", "simulerLot")
+    .addSeparator()
     .addItem("Envoyer le lot du jour", "envoyerLot")
     .addItem("Relever les réponses maintenant", "releverMaintenant")
     .addItem("Envoyer les relances dues", "relancerMaintenant")
     .addSeparator()
+    .addItem("Préparer 15 appels", "preparerAppels")
+    .addItem("Mettre à jour le tableau de bord", "tableauDeBord")
     .addItem("Où en est-on ?", "bilan")
     .addToUi();
 }
@@ -93,6 +103,17 @@ function installer() {
   ScriptApp.getProjectTriggers().forEach(function (t) { ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger("verifierReponses").timeBased().everyHours(1).create();
   ScriptApp.newTrigger("envoyerRelances").timeBased().everyDays(1).atHour(9).create();
+  ScriptApp.newTrigger("tableauDeBord").timeBased().everyHours(4).create();
+
+  const r = SpreadsheetApp.getUi().prompt(
+    "Mail de votre camarade",
+    "Pour qu'il reçoive aussi les alertes de réponse. Laissez vide si vous préférez.",
+    SpreadsheetApp.getUi().ButtonSet.OK_CANCEL);
+  const adresse = String(r.getResponseText() || "").trim();
+  if (adresse.indexOf("@") !== -1) {
+    PropertiesService.getScriptProperties().setProperty("camarade", adresse);
+  }
+  tableauDeBord();
 
   SpreadsheetApp.getUi().alert(
     "Installé.\n\n" +
@@ -122,7 +143,15 @@ function importerAnnuaire() {
     });
   }
 
-  const data = JSON.parse(UrlFetchApp.fetch(DEPOT + "dordogne.json").getContentText());
+  let data;
+  try {
+    data = JSON.parse(UrlFetchApp.fetch(DEPOT + "dordogne.json").getContentText());
+  } catch (e) {
+    SpreadsheetApp.getUi().alert(
+      "L'annuaire n'a pas pu être téléchargé.\n\n" +
+      "Vérifiez votre connexion, puis réessayez. Détail : " + e.message);
+    return;
+  }
   const lignes = [];
   data.entreprises.forEach(function (e) {
     if (!e.mail && !e.tel) return;                       // injoignable : inutile en base
@@ -135,7 +164,9 @@ function importerAnnuaire() {
     deja[cle_(e.n, e.v)] = true;
     lignes.push([
       e.n, e.c, e.v || "", e.a || "", e.tel || "", e.mail || "", "Nouveau",
-      STATUTS.aContacter, "", 0, "", "", "", "", "",
+      // ⚠️ 60 % de l'annuaire n'a QUE le téléphone. Les laisser en « À contacter » les
+      // ferait attendre un mail qui ne partira jamais, et on les croirait traités.
+      e.mail ? STATUTS.aContacter : STATUTS.aAppeler, "", 0, "", "", "", "", "",
     ]);
   });
 
@@ -148,8 +179,9 @@ function importerAnnuaire() {
   const avecMail = lignes.filter(function (l) { return l[COL.email - 1]; }).length;
   SpreadsheetApp.getUi().alert(
     lignes.length + " entreprises ajoutées.\n\n" +
-    avecMail + " ont une adresse mail et peuvent être démarchées tout de suite.\n" +
-    (lignes.length - avecMail) + " n'ont qu'un téléphone — à appeler, ce qui convertit mieux.\n\n" +
+    avecMail + " ont une adresse mail : elles passent en « À contacter ».\n" +
+    (lignes.length - avecMail) + " n'ont qu'un téléphone : elles passent en « À appeler ».\n" +
+    "Le téléphone convertit quatre à cinq fois mieux — ne les négligez pas.\n\n" +
     "Vos anciens partenaires : ajoutez-les à la main et mettez « Ancien partenaire » " +
     "dans la colonne Type. Ils recevront vos modèles de relance, pas ceux de prospection."
   );
@@ -215,30 +247,33 @@ function compteur_() {
  * Envoie un lot. `relance` à vrai ne reprend que les entreprises déjà contactées,
  * restées sans réponse depuis plus de DELAI_RELANCE jours.
  */
-function envoyer_(relance) {
+/**
+ * Qui recevrait quoi, et avec quel modèle.
+ *
+ * ⚠️ UNE SEULE SÉLECTION POUR LA SIMULATION ET POUR L'ENVOI. Deux fonctions séparées
+ * finiraient par diverger, et la simulation annoncerait autre chose que ce qui part.
+ */
+function prochainLot_(relance) {
   const f = feuille_("Entreprises");
-  if (f.getLastRow() < 2) return 0;
-
+  if (f.getLastRow() < 2) return [];
   const lignes = f.getRange(2, 1, f.getLastRow() - 1, NB_COLONNES).getValues();
   const modeles = lireModeles_();
-  if (!modeles.length) return 0;
+  if (!modeles.length) return [];
 
-  const budget = compteur_();
+  const plafond = compteur_().reste();
   const maintenant = new Date();
-  const dejaEcrit = {};        // une adresse ne reçoit qu'un mail par exécution
-  let envoyes = 0;
+  const dejaEcrit = {};
+  const lot = [];
 
-  for (let i = 0; i < lignes.length; i++) {
-    if (envoyes >= budget.reste()) break;
+  for (let i = 0; i < lignes.length && lot.length < plafond; i++) {
     const l = lignes[i];
     const statut = l[COL.statut - 1];
     const email = String(l[COL.email - 1] || "").trim().toLowerCase();
     if (!email || email.indexOf("@") === -1 || dejaEcrit[email]) continue;
-    if (statut !== STATUTS.aContacter && statut !== STATUTS.envoye && statut !== STATUTS.relance) continue;
 
     let rang = 0;
     if (relance) {
-      if (statut === STATUTS.aContacter) continue;
+      if (statut !== STATUTS.envoye && statut !== STATUTS.relance) continue;
       const faites = Number(l[COL.relances - 1]) || 0;
       if (faites >= MAX_RELANCES) continue;
       const envoye = l[COL.dateEnvoi - 1];
@@ -253,30 +288,45 @@ function envoyer_(relance) {
     const modele = choisirModele_(modeles, pour, rang);
     if (!modele) continue;
 
-    const donnees = { entreprise: l[COL.nom - 1], ville: l[COL.commune - 1], contact: "Madame, Monsieur" };
-    const objet = remplir_(modele.objet, donnees);
-    const corps = remplir_(modele.corps, donnees) + PIED_DE_MAIL;
+    const d = { entreprise: l[COL.nom - 1], ville: l[COL.commune - 1], contact: "Madame, Monsieur" };
+    dejaEcrit[email] = true;
+    lot.push({
+      ligne: i + 2, nom: l[COL.nom - 1], email: email, modele: modele.nom,
+      relances: Number(l[COL.relances - 1]) || 0,
+      objet: remplir_(modele.objet, d),
+      corps: remplir_(modele.corps, d) + PIED_DE_MAIL,
+    });
+  }
+  return lot;
+}
 
+/** Envoie le lot que `prochainLot_` a composé. */
+function envoyer_(relance) {
+  const f = feuille_("Entreprises");
+  const budget = compteur_();
+  const maintenant = new Date();
+  let envoyes = 0;
+
+  prochainLot_(relance).forEach(function (x) {
+    if (budget.reste() <= 0) return;
     try {
       // createDraft().send() rend le message envoyé : c'est de lui qu'on tire
       // l'identifiant du fil, et c'est cet identifiant qui rend le suivi possible.
-      const message = GmailApp.createDraft(email, objet, corps, {
+      const message = GmailApp.createDraft(x.email, x.objet, x.corps, {
         name: NOM_EXPEDITEUR, replyTo: EXPEDITEUR,
       }).send();
 
-      const ligne = i + 2;
-      f.getRange(ligne, COL.statut).setValue(relance ? STATUTS.relance : STATUTS.envoye);
-      f.getRange(ligne, COL.dateEnvoi).setValue(maintenant);
-      f.getRange(ligne, COL.relances).setValue((Number(l[COL.relances - 1]) || 0) + (relance ? 1 : 0));
-      f.getRange(ligne, COL.fil).setValue(message.getThread().getId());
-      dejaEcrit[email] = true;
+      f.getRange(x.ligne, COL.statut).setValue(relance ? STATUTS.relance : STATUTS.envoye);
+      f.getRange(x.ligne, COL.dateEnvoi).setValue(maintenant);
+      f.getRange(x.ligne, COL.relances).setValue(x.relances + (relance ? 1 : 0));
+      f.getRange(x.ligne, COL.fil).setValue(message.getThread().getId());
       envoyes++;
       budget.ajouter(1);
       Utilities.sleep(1500);   // On n'envoie pas en rafale : c'est le premier signal de spam.
     } catch (e) {
-      f.getRange(i + 2, COL.reponse).setValue("Échec de l'envoi : " + e.message);
+      f.getRange(x.ligne, COL.reponse).setValue("Échec de l'envoi : " + e.message);
     }
-  }
+  });
   return envoyes;
 }
 
@@ -354,7 +404,8 @@ function verifierReponses() {
   }
 
   if (nouvelles) {
-    const pour = EXPEDITEUR + (EN_COPIE ? "," + EN_COPIE : "");
+    const copie = enCopie_();
+    const pour = EXPEDITEUR + (copie ? "," + copie : "");
     GmailApp.sendEmail(pour,
       nouvelles + " réponse" + (nouvelles > 1 ? "s" : "") + " à vos mails de prospection",
       "Le tableau a été mis à jour tout seul.\n\n" + resume_() +
@@ -449,9 +500,173 @@ function resume_() {
     (joint ? "Taux de réponse : " + Math.round((repondu / joint) * 100) + " %" : "");
 }
 
+
+/* ══════════════════════════════════════════════════════════════════
+   AVANT LE PREMIER ENVOI — essai et simulation
+   ══════════════════════════════════════════════════════════════════ */
+
+/**
+ * S'envoie à soi-même le mail exact qu'une entreprise recevrait.
+ *
+ * ⚠️ À FAIRE AVANT LE PREMIER LOT. Une coquille dans un modèle, un {{entreprise}} mal
+ * écrit, une signature oubliée : ça part trente-cinq fois et ça ne se rattrape pas.
+ */
+function mailDEssai() {
+  const f = feuille_("Entreprises");
+  const modeles = lireModeles_();
+  if (!modeles.length) { alerte_("Aucun modèle. Lancez « 1. Installer » d'abord."); return; }
+
+  const exemple = f.getLastRow() > 1
+    ? f.getRange(2, 1, f.getLastRow() - 1, NB_COLONNES).getValues()
+        .filter(function (l) { return l[COL.email - 1]; })[0]
+    : null;
+  const d = exemple
+    ? { entreprise: exemple[COL.nom - 1], ville: exemple[COL.commune - 1], contact: "Madame, Monsieur" }
+    : { entreprise: "Boulangerie du Marché", ville: "Périgueux", contact: "Madame, Monsieur" };
+
+  const m = choisirModele_(modeles, "nouveau", 0);
+  GmailApp.sendEmail(EXPEDITEUR, "[ESSAI] " + remplir_(m.objet, d),
+    "Ceci est un essai. Le texte ci-dessous est exactement ce que recevrait " +
+    d.entreprise + ".\n\n────────────────────\n\n" +
+    remplir_(m.corps, d) + PIED_DE_MAIL,
+    { name: NOM_EXPEDITEUR, replyTo: EXPEDITEUR });
+
+  alerte_("Essai envoyé à " + EXPEDITEUR + ".\n\n" +
+    "Relisez-le dans votre boîte : orthographe, ton, signature, et surtout que le nom de " +
+    "l'entreprise apparaisse bien. Corrigez l'onglet « Modèles » si besoin.");
+}
+
+/** Montre qui recevrait quoi, sans rien envoyer. */
+function simulerLot() {
+  const lot = prochainLot_(false);
+  if (!lot.length) { alerte_("Aucun envoi prévu.\n\nTout est contacté, ou le plafond du jour est atteint."); return; }
+  const apercu = lot.slice(0, 12).map(function (x) {
+    return "· " + x.nom + "  (" + x.email + ")\n     → " + x.modele;
+  }).join("\n");
+  alerte_(lot.length + " mail" + (lot.length > 1 ? "s partiraient" : " partirait") +
+    " si vous lanciez le lot :\n\n" + apercu +
+    (lot.length > 12 ? "\n\n…et " + (lot.length - 12) + " autres." : "") +
+    "\n\nRien n'a été envoyé.");
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   LE TÉLÉPHONE — 60 % de l'annuaire
+   ══════════════════════════════════════════════════════════════════ */
+
+/**
+ * Remonte quinze entreprises à appeler en tête du tableau.
+ *
+ * ⚠️ LE TÉLÉPHONE N'EST PAS LE PARENT PAUVRE. Six fiches sur dix n'ont pas d'adresse
+ * mail, et un appel convertit quatre à cinq fois mieux qu'un envoi. Les ignorer, c'est
+ * se priver de la majorité de l'annuaire et du meilleur canal.
+ */
+function preparerAppels() {
+  const f = feuille_("Entreprises");
+  if (f.getLastRow() < 2) { alerte_("Le tableau est vide."); return; }
+  const lignes = f.getRange(2, 1, f.getLastRow() - 1, NB_COLONNES).getValues();
+
+  const liste = [];
+  for (let i = 0; i < lignes.length && liste.length < 15; i++) {
+    const l = lignes[i];
+    if (l[COL.statut - 1] !== STATUTS.aAppeler) continue;
+    if (!String(l[COL.telephone - 1] || "").trim()) continue;
+    if (l[COL.dateEnvoi - 1] instanceof Date) continue;      // déjà appelé
+    liste.push({ ligne: i + 2, nom: l[COL.nom - 1], tel: l[COL.telephone - 1],
+                 cat: l[COL.categorie - 1], ville: l[COL.commune - 1] });
+  }
+  if (!liste.length) { alerte_("Plus personne à appeler dans cette liste."); return; }
+
+  liste.forEach(function (x) { f.getRange(x.ligne, 1, 1, NB_COLONNES).setBackground("#e8eef7"); });
+  alerte_("Vos " + liste.length + " appels du jour, surlignés en bleu dans le tableau :\n\n" +
+    liste.map(function (x) {
+      return "· " + x.nom + " — " + x.tel + "\n     " + x.cat + ", " + x.ville;
+    }).join("\n") +
+    "\n\nAprès chaque appel, changez le statut de la ligne. La date se met toute seule.");
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TABLEAU DE BORD
+   ══════════════════════════════════════════════════════════════════ */
+
+/** Écrit l'état du financement dans un onglet, rafraîchi toutes les quatre heures. */
+function tableauDeBord() {
+  const classeur = SpreadsheetApp.getActiveSpreadsheet();
+  let b = classeur.getSheetByName("Tableau de bord");
+  if (!b) { b = classeur.insertSheet("Tableau de bord", 0); }
+
+  const c = chiffres_();
+  b.clear();
+  b.getRange("A1").setValue("La Boétie — où en est le financement")
+    .setFontSize(16).setFontWeight("bold");
+  b.getRange("A2").setValue("Mis à jour le " +
+    Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "d MMMM yyyy 'à' HH:mm"))
+    .setFontColor("#777777");
+
+  const lignes = [
+    ["Promesses obtenues", c.total + " €"],
+    ["Objectif", OBJECTIF_EUROS + " €"],
+    ["Reste à lever", Math.max(0, OBJECTIF_EUROS - c.total) + " €"],
+    ["", ""],
+    ["Partenaires acquis", c.accepte],
+    ["Refus", c.refuse],
+    ["Réponses à lire", c.repondu],
+    ["", ""],
+    ["Mails envoyés", c.joint],
+    ["Taux de réponse", c.joint ? Math.round((c.reponses / c.joint) * 100) + " %" : "—"],
+    ["Taux d'accord", c.reponses ? Math.round((c.accepte / c.reponses) * 100) + " %" : "—"],
+    ["", ""],
+    ["Restent à contacter par mail", c.aContacter],
+    ["Restent à appeler", c.aAppeler],
+    ["Adresses mortes", c.invalide],
+  ];
+  b.getRange(4, 1, lignes.length, 2).setValues(lignes);
+  b.getRange(4, 1, 3, 1).setFontWeight("bold");
+  b.getRange(4, 2, 3, 1).setFontWeight("bold").setFontSize(13);
+  b.setColumnWidth(1, 240); b.setColumnWidth(2, 130);
+
+  // Combien d'entreprises il reste à démarcher pour atteindre l'objectif, au rythme constaté.
+  const manque = Math.max(0, OBJECTIF_EUROS - c.total);
+  const panier = c.accepte ? c.total / c.accepte : 85;
+  const tauxAccord = c.reponses ? c.accepte / c.joint : 0.06;
+  const aFaire = tauxAccord > 0 ? Math.ceil((manque / panier) / tauxAccord) : 0;
+  b.getRange(4 + lignes.length + 1, 1).setValue(
+    manque === 0 ? "Objectif atteint."
+    : c.joint < 10 ? "Trop tôt pour projeter : il faut une dizaine de contacts pour un taux fiable."
+    : "Au rythme actuel, il reste environ " + aFaire + " entreprises à démarcher."
+  ).setFontStyle("italic").setFontColor("#555555");
+}
+
+function chiffres_() {
+  const f = feuille_("Entreprises");
+  const c = { total: 0, accepte: 0, refuse: 0, repondu: 0, aContacter: 0,
+              aAppeler: 0, invalide: 0, joint: 0, reponses: 0 };
+  if (f.getLastRow() < 2) return c;
+  f.getRange(2, 1, f.getLastRow() - 1, NB_COLONNES).getValues().forEach(function (l) {
+    const s = l[COL.statut - 1] || STATUTS.aContacter;
+    if (s === STATUTS.accepte)        { c.accepte++; c.total += Number(l[COL.montant - 1]) || 0; }
+    else if (s === STATUTS.refuse)     c.refuse++;
+    else if (s === STATUTS.repondu)    c.repondu++;
+    else if (s === STATUTS.aContacter) c.aContacter++;
+    else if (s === STATUTS.aAppeler)   c.aAppeler++;
+    else if (s === STATUTS.invalide)   c.invalide++;
+  });
+  c.reponses = c.accepte + c.refuse + c.repondu;
+  c.joint = c.reponses + compter_(f, [STATUTS.envoye, STATUTS.relance]);
+  return c;
+}
+
+function compter_(f, statuts) {
+  if (f.getLastRow() < 2) return 0;
+  return f.getRange(2, COL.statut, f.getLastRow() - 1, 1).getValues()
+    .filter(function (l) { return statuts.indexOf(l[0]) !== -1; }).length;
+}
+
+function alerte_(texte) { SpreadsheetApp.getUi().alert(texte); }
+
 /* ══════════════════════════════════════════════════════════════════
    OUTILS
    ══════════════════════════════════════════════════════════════════ */
+
 
 function feuille_(nom) {
   const f = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nom);

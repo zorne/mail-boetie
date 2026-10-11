@@ -26,6 +26,17 @@ deux fois à quelqu'un qui a demandé qu'on le laisse tranquille.
 
 C'est fini. À partir de là, tout tourne seul.
 
+## Avant le premier envoi — deux minutes bien employées
+
+**La Boétie → S'envoyer un mail d'essai.** Vous recevez le mail exact qu'une entreprise
+recevrait. Relisez-le : orthographe, ton, signature, et surtout que le nom de l'entreprise
+apparaisse bien à la place de `{{entreprise}}`. Une coquille part trente-cinq fois et ne se
+rattrape pas.
+
+**La Boétie → Simuler le lot du jour.** Montre qui recevrait quoi, sans rien envoyer. La
+simulation utilise exactement le même code de sélection que l'envoi réel — sinon elle
+annoncerait autre chose que ce qui part.
+
 ## Ce qui se passe ensuite, sans vous
 
 | Quand | Quoi |
@@ -36,6 +47,24 @@ C'est fini. À partir de là, tout tourne seul.
 
 Pour envoyer un lot : **La Boétie → Envoyer le lot du jour**. Le script en envoie jusqu'à 35,
 espacés de quelques secondes.
+
+## Le téléphone, qui est la majorité de l'annuaire
+
+**Six fiches sur dix n'ont pas d'adresse mail** — 502 sur 832. Elles arrivent en statut
+*À appeler*, pas *À contacter* : sans ça, elles attendraient un mail qui ne partirait jamais,
+et on les croirait traitées.
+
+**La Boétie → Préparer 15 appels** surligne en bleu les quinze suivantes et vous donne la
+liste avec les numéros. Après chaque appel, changez le statut de la ligne.
+
+Ne négligez pas ce canal : un appel convertit quatre à cinq fois mieux qu'un mail. C'est le
+meilleur de vos deux canaux, et c'est aussi le plus gros.
+
+## Le tableau de bord
+
+Un onglet **Tableau de bord**, rafraîchi toutes les quatre heures : promesses obtenues, reste à
+lever, taux de réponse, taux d'accord, et — au-delà d'une dizaine de contacts — une estimation
+du nombre d'entreprises qu'il reste à démarcher au rythme constaté.
 
 ## Ce qui est automatique, et ce qui ne l'est pas
 
