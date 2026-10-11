@@ -51,7 +51,13 @@ ne tranche pas et laisse *A répondu*, en colorant la ligne en jaune.
 Vous n'avez donc **jamais à saisir qui a répondu**. Il vous reste à jeter un œil aux lignes
 jaunes, qui sont une minorité.
 
-Si la réponse cite une somme (« 100 € »), elle est reportée dans la colonne Montant.
+Si la réponse cite une somme (« 100 € »), elle est reportée dans la colonne Montant. Le mail
+d'origine cité sous la réponse est retiré avant lecture : sans cela, les « 50 € / 100 € / 150 € »
+de nos propres paliers seraient relevés comme la promesse du commerçant.
+
+**Un rebond n'est pas une réponse.** Une adresse morte renvoie un message automatique ; il est
+reconnu comme tel et la ligne passe en *Adresse invalide*, au lieu d'être comptée comme un
+contact établi.
 
 ## Les garde-fous, et pourquoi ils existent
 
@@ -71,11 +77,23 @@ prospection par mail, et c'est aussi ce qui protège votre réputation d'expédi
 sur les sites des entreprises. Une adresse inventée rebondit, et dix rebonds suffisent à faire
 classer tous vos envois en indésirables.
 
+## Éprouver la lecture automatique
+
+Les tournures reconnues sont testées sur de vraies phrases de réponse :
+
+```bash
+node apps-script/test-lecture.mjs
+```
+
+À relancer après toute retouche des expressions. Un refus lu comme un accord fausse le total
+affiché, et rien ne le signalerait.
+
 ## Les colonnes du tableau
 
 | Colonne | Remplie par |
 |---|---|
 | Entreprise, Catégorie, Commune, Adresse, Téléphone, Adresse mail | L'import de l'annuaire |
+| Type | « Nouveau » par défaut ; mettez « Ancien partenaire » pour vos partenaires de l'an dernier |
 | Statut | Le script, à chaque envoi et à chaque réponse |
 | Envoyé le, Relances, Fil Gmail | Le script |
 | Répondu le, Lecture auto, Extrait de la réponse | Le script |

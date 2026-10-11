@@ -22,20 +22,22 @@ décide, souvent en trente secondes.
 |---|---|
 | `apps-script/Code.gs` | **Le moteur** : envoi, détection des réponses, relances automatiques |
 | `apps-script/README.md` | La notice d'installation, pas à pas |
+| `apps-script/test-lecture.mjs` | Éprouve la lecture automatique des réponses |
 | `index.html` | L'application de consultation : registre, modèles, tournée d'envoi |
-| `dordogne.json` | L'annuaire : 823 entreprises joignables, 253 communes |
+| `dordogne.json` | L'annuaire : 832 entreprises joignables, 252 communes |
 | `modeles.json` | Les 5 modèles de mail (3 relances, 2 prospections) |
 | `outils/contacts-osm.py` | Construit l'annuaire depuis OpenStreetMap et les sites |
 | `outils/communes-et-tri.py` | Retrouve les communes et écarte les adresses douteuses |
 | `outils/annuaire-dordogne.py` | Variante bâtie sur la base SIRENE (sans contacts) |
 
-## L'annuaire — 823 entreprises réellement joignables
+## L'annuaire — 832 entreprises réellement joignables
 
-**310 avec une adresse mail, 757 avec un téléphone, 253 communes.** Périgueux 52, Bergerac 45,
-Sarlat 44, Terrasson 39, Montignac 19, Eymet 16, Brantôme 15…
+**330 avec une adresse mail, 757 avec un téléphone, 252 communes.** Périgueux 54, Bergerac 45,
+Sarlat 43, Terrasson 39, Montignac 19, Brantôme 16, Eymet 16…
 
 Les contacts viennent d'**OpenStreetMap** (licence ODbL), complétés en allant lire les sites
-des entreprises quand la carte n'avait pas l'adresse mail. Les communes manquantes ont été
+des entreprises quand la carte n'avait pas l'adresse mail — y compris leurs **mentions
+légales**, obligatoires en France et qui doivent porter un contact. Les communes manquantes ont été
 retrouvées par géocodage inverse via l'API Adresse de l'État.
 
 Quatre filtres :

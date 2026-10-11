@@ -52,9 +52,13 @@ def nettoyer(m):
 def mail_du_site(url):
     """Télécharge l'accueil puis la page contact, et relève la première adresse."""
     base = url.rstrip("/")
-    for u in (base, base + "/contact", base + "/contacts", base + "/nous-contacter"):
+    # Les mentions légales sont obligatoires en France et doivent porter un contact :
+    # c'est la page la plus sûre quand l'accueil n'affiche rien.
+    for u in (base, base + "/contact", base + "/mentions-legales", base + "/contacts",
+              base + "/nous-contacter", base + "/mentions-legales.html",
+              base + "/mentions-legales/", base + "/contact.html", base + "/contactez-nous"):
         try:
-            p = subprocess.run(["curl", "-sL", "--max-time", "12", "--compressed",
+            p = subprocess.run(["curl", "-sL", "--max-time", "10", "--compressed",
                                 "-A", "Mozilla/5.0 (compatible; LaBoetie/1.0)", u],
                                capture_output=True, text=True, errors="ignore")
             if p.returncode != 0 or not p.stdout: continue
