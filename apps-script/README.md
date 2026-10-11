@@ -57,6 +57,16 @@ et on les croirait traitées.
 **La Boétie → Préparer 15 appels** surligne en bleu les quinze suivantes et vous donne la
 liste avec les numéros. Après chaque appel, changez le statut de la ligne.
 
+L'onglet **Script d'appel** contient l'ouverture en quinze secondes, les sept objections que
+vous allez entendre avec quoi répondre à chacune, et les heures où appeler selon le métier.
+Lisez-le avant le premier appel. Ce n'est pas du code, et c'est probablement ce qui pèsera le
+plus sur votre taux d'accord.
+
+Trois règles y sont rappelées, parce qu'elles comptent plus que le texte : ne jamais raccrocher
+sans une date, ne jamais demander « ça vous intéresse ? » (on répond non par réflexe) mais
+« je vous mets sur quelle formule ? », et traiter un non comme une information — il faut une
+centaine d'appels pour dix-huit accords.
+
 Ne négligez pas ce canal : un appel convertit quatre à cinq fois mieux qu'un mail. C'est le
 meilleur de vos deux canaux, et c'est aussi le plus gros.
 
@@ -116,6 +126,18 @@ node apps-script/test-lecture.mjs
 
 À relancer après toute retouche des expressions. Un refus lu comme un accord fausse le total
 affiché, et rien ne le signalerait.
+
+## Deux filets de sécurité discrets
+
+**Un « Accepté » sans montant ne compte pour rien dans le total.** C'est l'erreur de saisie la
+plus coûteuse : la ligne a l'air traitée, le total reste en dessous de la réalité, et personne
+ne comprend pourquoi. Dès que vous passez une ligne à *Accepté*, la case Montant devient jaune
+avec une note, tant qu'elle est vide.
+
+**Le relevé des réponses tient la charge.** Il fait une seule recherche Gmail par passage, pas
+un appel par mail envoyé. L'ancienne version coûtait 7 200 appels par jour à 300 envois et
+aurait fini par dépasser le temps d'exécution — elle aurait donc cassé au moment précis où la
+campagne marchait.
 
 ## Les colonnes du tableau
 

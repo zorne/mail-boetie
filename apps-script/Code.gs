@@ -62,6 +62,7 @@ function onOpen() {
     .addItem("Envoyer les relances dues", "relancerMaintenant")
     .addSeparator()
     .addItem("Préparer 15 appels", "preparerAppels")
+    .addItem("Rouvrir le script d'appel", "scriptDAppel_")
     .addItem("Mettre à jour le tableau de bord", "tableauDeBord")
     .addItem("Où en est-on ?", "bilan")
     .addToUi();
@@ -114,6 +115,7 @@ function installer() {
     PropertiesService.getScriptProperties().setProperty("camarade", adresse);
   }
   tableauDeBord();
+  scriptDAppel_();
 
   SpreadsheetApp.getUi().alert(
     "Installé.\n\n" +
@@ -361,18 +363,25 @@ function verifierReponses() {
   const lignes = f.getRange(2, 1, f.getLastRow() - 1, NB_COLONNES).getValues();
   let nouvelles = 0;
 
+  // ⚠️ UNE SEULE RECHERCHE, PAS UN APPEL PAR LIGNE. Interroger Gmail fil par fil coûtait
+  // un appel par mail envoyé, à chaque heure : 300 envois faisaient 7 200 appels par jour
+  // et 90 s par exécution. Ça tenait au début et cassait au moment où ça marche — la pire
+  // sorte de panne. Une recherche rend d'un coup tous les fils où quelqu'un a écrit.
+  const avecReponse = {};
+  GmailApp.search("-from:me newer_than:45d", 0, 400).forEach(function (t) {
+    avecReponse[t.getId()] = t;
+  });
+
   for (let i = 0; i < lignes.length; i++) {
     const l = lignes[i];
     const fil = String(l[COL.fil - 1] || "");
     const statut = l[COL.statut - 1];
     if (!fil) continue;
     if (statut !== STATUTS.envoye && statut !== STATUTS.relance) continue;
+    const trouve = avecReponse[fil];
+    if (!trouve) continue;
 
-    let messages;
-    try { messages = GmailApp.getThreadById(fil).getMessages(); }
-    catch (e) { continue; }
-
-    const reponse = messages.filter(function (m) {
+    const reponse = trouve.getMessages().filter(function (m) {
       return m.getFrom().toLowerCase().indexOf(EXPEDITEUR) === -1;
     })[0];
     if (!reponse) continue;
@@ -584,6 +593,100 @@ function preparerAppels() {
     "\n\nAprès chaque appel, changez le statut de la ligne. La date se met toute seule.");
 }
 
+
+/* ══════════════════════════════════════════════════════════════════
+   SCRIPT D'APPEL
+   ══════════════════════════════════════════════════════════════════ */
+
+/**
+ * Écrit l'onglet « Script d'appel ».
+ *
+ * ⚠️ C'EST L'OUTIL LE PLUS UTILE DU LOT, ET CE N'EST PAS DU CODE. Six fiches sur dix
+ * n'ont qu'un téléphone, et c'est le canal qui convertit le mieux. Ce qui décide du
+ * résultat, ce n'est pas le logiciel : c'est ce qu'on répond quand on entend
+ * « envoyez-moi un mail ».
+ */
+function scriptDAppel_() {
+  const classeur = SpreadsheetApp.getActiveSpreadsheet();
+  let a = classeur.getSheetByName("Script d'appel");
+  if (!a) a = classeur.insertSheet("Script d'appel");
+  a.clear();
+
+  const T = "titre", P = "para", Q = "objection";
+  const contenu = [
+    [T, "Les trois règles qui comptent plus que le texte"],
+    [P, "1. Ne jamais raccrocher sans une date. « Je vais réfléchir » ne vaut rien ; " +
+        "« je vous rappelle jeudi » vaut un rendez-vous. Notez-la dans la colonne Notes."],
+    [P, "2. Ne jamais demander « ça vous intéresse ? ». On répond non par réflexe. " +
+        "Demandez « je vous mets sur quelle formule, 50 ou 100 ? » — la question porte sur " +
+        "le montant, plus sur le principe."],
+    [P, "3. Un non est une information, pas un échec. Notez-le, passez au suivant. " +
+        "Il faut une centaine d'appels pour dix-huit accords : les refus font partie du compte."],
+    ["", ""],
+    [T, "L'ouverture — quinze secondes, pas plus"],
+    [P, "« Bonjour, je m'appelle [prénom], je fais partie de l'association La Boétie. " +
+        "On organise une conférence avec des auteurs pour donner le goût de la lecture aux " +
+        "jeunes du secteur, avec un loto ouvert à tous. J'appelle les commerçants du coin " +
+        "pour le financement — vous avez deux minutes ? »"],
+    [P, "Puis, tout de suite : « Concrètement, votre enseigne apparaît sur l'affiche de " +
+        "l'événement, vue par les familles du quartier. Trois formules : 50, 100 ou 150 euros. »"],
+    [P, "Dites les trois montants dans cet ordre. Annoncer « à partir de 50 » fait que " +
+        "tout le monde donne 50."],
+    ["", ""],
+    [T, "Ce qu'on va vous répondre, et quoi dire"],
+    [Q, "« Envoyez-moi un mail. »"],
+    [P, "→ « Bien sûr, je vous l'envoie aujourd'hui. Je prends votre adresse ? Et je vous " +
+        "rappelle vendredi pour votre réponse, ça vous va ? » — Un mail seul n'obtient " +
+        "presque rien. Un mail suivi d'un rappel annoncé, c'est autre chose. Ne partez " +
+        "jamais avec le mail seul."],
+    [Q, "« On ne fait pas de dons. »"],
+    [P, "→ « Ce n'est pas un don, c'est du parrainage. Votre enseigne est sur l'affiche, " +
+        "et pour vous c'est une dépense de communication, pas un cadeau. On vous fait une " +
+        "facture. » — C'est l'objection la plus fréquente et la plus facile à retourner."],
+    [Q, "« Je n'ai pas le temps. »"],
+    [P, "→ « Trente secondes : 50 euros, votre nom sur l'affiche de la conférence, vue par " +
+        "les familles du quartier. Je peux repasser quand ? »"],
+    [Q, "« C'est combien ? »"],
+    [P, "→ « 50, 100 ou 150. La plupart prennent 100. » — Dire ce que font les autres aide " +
+        "à décider, et c'est vrai dès que c'est vrai : ne l'inventez pas."],
+    [Q, "« C'est le siège qui décide. »"],
+    [P, "→ « Vous avez peut-être un petit budget local ? Sinon, à qui je peux m'adresser ? » " +
+        "— Repartez toujours avec un nom ou un numéro."],
+    [Q, "« Repassez plus tard. »"],
+    [P, "→ « Quel jour vous arrange, mardi ou jeudi ? Je note. » — Deux choix, jamais une " +
+        "question ouverte."],
+    [Q, "Hésitation, silence."],
+    [P, "→ « Si 50 euros c'est trop en ce moment, un lot pour le loto nous rend autant " +
+        "service. » — Beaucoup de commerçants qui refusent l'argent acceptent le lot. " +
+        "Notez-le dans la colonne Notes : ça compte pour le loto, pas pour les 1 500 €."],
+    ["", ""],
+    [T, "Quand appeler"],
+    [P, "Entre 10 h et 11 h 30, ou entre 14 h 30 et 17 h. Jamais le lundi matin, jamais le " +
+        "vendredi en fin de journée."],
+    [P, "Boulangeries et restaurants : surtout pas aux heures de service. Appelez une " +
+        "boulangerie vers 15 h, un restaurant vers 10 h ou 15 h 30."],
+    [P, "Demandez toujours le responsable par son nom une fois que vous le connaissez. " +
+        "« Je peux parler à Madame Durand ? » passe beaucoup mieux que « le responsable »."],
+    ["", ""],
+    [T, "Après l'appel"],
+    [P, "Changez le statut de la ligne dans l'onglet Entreprises, et notez en deux mots ce " +
+        "qui s'est dit. Dans trois semaines vous ne vous en souviendrez plus, et votre " +
+        "camarade non plus."],
+  ];
+
+  a.getRange("A1").setValue("Script d'appel — La Boétie").setFontSize(16).setFontWeight("bold");
+  let ligne = 3;
+  contenu.forEach(function (x) {
+    const c = a.getRange(ligne, 1);
+    if (x[0] === T) c.setValue(x[1]).setFontWeight("bold").setFontSize(12).setFontColor("#7b2230");
+    else if (x[0] === Q) c.setValue(x[1]).setFontWeight("bold");
+    else if (x[0] === P) c.setValue(x[1]).setWrap(true).setVerticalAlignment("top");
+    ligne++;
+  });
+  a.setColumnWidth(1, 780);
+  a.getRange(1, 1, ligne, 1).setVerticalAlignment("top");
+}
+
 /* ══════════════════════════════════════════════════════════════════
    TABLEAU DE BORD
    ══════════════════════════════════════════════════════════════════ */
@@ -662,6 +765,32 @@ function compter_(f, statuts) {
 }
 
 function alerte_(texte) { SpreadsheetApp.getUi().alert(texte); }
+
+/**
+ * Un « Accepté » sans montant ne compte pour rien dans le total.
+ *
+ * ⚠️ C'est l'erreur de saisie la plus coûteuse : la ligne a l'air traitée, le total
+ * reste en dessous de la réalité, et personne ne comprend pourquoi. On la rend visible
+ * à la seconde où elle est faite.
+ */
+function onEdit(e) {
+  if (!e || !e.range) return;
+  const f = e.range.getSheet();
+  if (f.getName() !== "Entreprises") return;
+  if (e.range.getColumn() !== COL.statut) return;
+
+  const ligne = e.range.getRow();
+  if (ligne < 2) return;
+  const cellule = f.getRange(ligne, COL.montant);
+
+  if (e.range.getValue() === STATUTS.accepte && !Number(cellule.getValue())) {
+    cellule.setBackground("#fff3cd")
+           .setNote("Accepté, mais aucun montant : cette ligne ne compte pas dans le total.");
+    f.getRange(ligne, COL.dateReponse).setValue(f.getRange(ligne, COL.dateReponse).getValue() || new Date());
+  } else {
+    cellule.setBackground(null).clearNote();
+  }
+}
 
 /* ══════════════════════════════════════════════════════════════════
    OUTILS
