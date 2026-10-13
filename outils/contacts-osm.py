@@ -32,7 +32,7 @@ REJET_MAIL = re.compile(
     r"(mousquetaires|carrefour|leclerc|intermarche|lidl|auchan|casino|"
     r"ca-[a-z]+\.fr|creditagricole|banquepopulaire|caisse-epargne|sg\.fr|bnpparibas|"
     r"laposte\.fr|sfr\.fr|orange\.fr$|wanadoo|sentry|wixpress|example|"
-    r"\.png|\.jpg|\.gif|\.svg|\.webp)", re.I)
+    r"\.(png|jpe?g|gif|svg|webp|js|mjs|cjs|css|map|json|woff2?|ico)$)", re.I)
 MAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,6}")
 
 def tag(e, k):
@@ -45,9 +45,14 @@ def categorie(t):
         if v and v in CATEGORIES: return CATEGORIES[v]
     return None
 
+# Une adresse bien formée, et rien d'autre. Sans ce contrôle, un `mailto:${a}` trouvé
+# dans du JavaScript minifié entrait dans l'annuaire comme un contact.
+FORME = re.compile(r"^[a-z0-9][a-z0-9._%+-]*@[a-z0-9][a-z0-9.-]*\.[a-z]{2,12}$")
+
 def nettoyer(m):
     m = m.strip().strip(".,;:()<>\"'").lower()
-    return None if (REJET_MAIL.search(m) or len(m) > 64) else m
+    if not FORME.match(m) or len(m) > 64: return None
+    return None if REJET_MAIL.search(m) else m
 
 def mail_du_site(url):
     """Télécharge l'accueil puis la page contact, et relève la première adresse."""

@@ -152,6 +152,10 @@
   .vide h2 { font-family: var(--titre); font-size: 21px; font-weight: 700; margin: 0 0 9px; }
   .vide p { color: var(--encre-2); margin: 0 0 18px; }
   .attente { color: var(--encre-3); padding: 32px 0; }
+  .rappel {
+    font-size: 12.5px; color: var(--encre-2); margin: 0 0 20px;
+    border-left: 2px solid var(--trait-fort); padding-left: 11px; max-width: 72ch;
+  }
 
   /* ── Panneau ──────────────────────────────────────── */
   .voile { position: fixed; inset: 0; background: rgba(12,12,11,.42); z-index: 40; display: flex; justify-content: flex-end; }
@@ -242,6 +246,8 @@
       <button class="lien" id="btn-ajouter">Ajouter à la main</button>
       <button class="lien" id="btn-importer">Importer les anciens partenaires</button>
     </div>
+    <p class="rappel">Le suivi des envois et des réponses vit dans le tableur Google, qui fait
+      foi. Ce registre-ci sert à parcourir l'annuaire et à préparer des envois ponctuels.</p>
     <div class="compteurs" id="compteurs"></div>
     <div id="liste"><p class="attente">Ouverture du registre…</p></div>
   </div>
@@ -765,9 +771,12 @@
       cats.sort(function (a, b) { return a.localeCompare(b, "fr"); });
 
       $("c-corps").innerHTML =
-        '<div class="avis"><strong>Contacts réels, relevés sur OpenStreetMap et sur les sites ' +
-        'des entreprises.</strong> Toutes ont un téléphone ou une adresse mail. Aucune adresse ' +
-        'n\'est devinée : celles qui manquaient restent vides.</div>' +
+        '<div class="avis"><strong>Contacts réels.</strong> Toutes ces entreprises ont un ' +
+        'téléphone ou une adresse mail, et les domaines qui ne reçoivent pas de courrier ont ' +
+        'été écartés. Aucune adresse n\'est devinée : celles qui manquaient restent vides.' +
+        '<br><span style="font-size:12px">Données © les contributeurs ' +
+        '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">' +
+        'OpenStreetMap</a>, sous licence ODbL.</span></div>' +
         '<div class="duo">' +
           '<label class="champ"><span>Commune</span><select id="c-ville">' +
             '<option value="">Toute la Dordogne</option>' +

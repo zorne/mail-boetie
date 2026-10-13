@@ -24,15 +24,16 @@ décide, souvent en trente secondes.
 | `apps-script/README.md` | La notice d'installation, pas à pas |
 | `apps-script/test-lecture.mjs` | Éprouve la lecture automatique des réponses |
 | `index.html` | L'application de consultation : registre, modèles, tournée d'envoi |
-| `dordogne.json` | L'annuaire : 832 entreprises joignables, 252 communes |
+| `dordogne.json` | L'annuaire : 829 entreprises joignables, 252 communes |
 | `modeles.json` | Les 5 modèles de mail (3 relances, 2 prospections) |
 | `outils/contacts-osm.py` | Construit l'annuaire depuis OpenStreetMap et les sites |
 | `outils/communes-et-tri.py` | Retrouve les communes et écarte les adresses douteuses |
+| `outils/verifier-domaines.py` | Écarte les adresses dont le domaine ne reçoit pas de courrier |
 | `outils/annuaire-dordogne.py` | Variante bâtie sur la base SIRENE (sans contacts) |
 
-## L'annuaire — 832 entreprises réellement joignables
+## L'annuaire — 829 entreprises réellement joignables
 
-**330 avec une adresse mail, 757 avec un téléphone, 252 communes.** Périgueux 54, Bergerac 45,
+**308 avec une adresse mail, 757 avec un téléphone, 252 communes.** Périgueux 54, Bergerac 45,
 Sarlat 43, Terrasson 39, Montignac 19, Brantôme 16, Eymet 16…
 
 Les contacts viennent d'**OpenStreetMap** (licence ODbL), complétés en allant lire les sites
@@ -46,13 +47,18 @@ Quatre filtres :
 - **joignable** — une fiche sans mail ni téléphone ne sert à rien ;
 - **pas d'adresse partagée** — une même adresse sur plusieurs commerces sans lien, c'est une
   extraction ratée, pas un contact ;
-- **pas d'adresse générique suspecte** — `contact@gmail.com` et consorts sont écartés.
+- **adresse bien formée** — sans ce contrôle, un `mailto:${a}` trouvé dans du JavaScript
+  minifié entrait dans l'annuaire comme un contact ;
+- **pas d'adresse générique suspecte** — `contact@gmail.com` et consorts sont écartés ;
+- **domaine qui reçoit réellement du courrier** — vingt domaines sans aucun enregistrement
+  postal ont été retirés. Quelques dizaines de rebonds suffisent à faire classer tous les
+  envois suivants en indésirables.
 
 Aucune adresse n'est devinée. Celles qui manquaient restent vides : un mail qui rebondit fait
 classer tous les suivants en indésirables.
 
 ```bash
-python3 outils/contacts-osm.py && python3 outils/communes-et-tri.py
+python3 outils/contacts-osm.py && python3 outils/communes-et-tri.py && python3 outils/verifier-domaines.py
 ```
 
 ## Le parrainage n'est pas un don
@@ -80,11 +86,29 @@ chercher et consulter, jamais pour suivre.
 
 ## L'application de consultation
 
-L'envoi passe par Gmail plutôt que par une API d'envoi : cent mails identiques partis d'un
-domaine neuf finissent en indésirables, alors qu'un mail parti d'une vraie adresse arrive en
-boîte de réception.
+Publiée comme Artifact Claude, elle sert à **parcourir l'annuaire** : filtrer par commune et par
+activité, chercher une entreprise, lire l'argument de vente propre à chaque métier. Elle porte
+aussi une tournée d'envoi manuelle, utile pour quelques mails ponctuels.
 
-## Licence
+Son registre lui est propre et ne remonte nulle part : pour le suivi, c'est le tableur qui fait foi.
 
-Code sous licence MIT. Les données de `dordogne.json` proviennent de la base SIRENE, diffusées
-sous [Licence Ouverte 2.0](https://www.etalab.gouv.fr/licence-ouverte-open-licence/).
+## Pourquoi Gmail et pas une API d'envoi
+
+Cent mails identiques partis d'un domaine neuf finissent en indésirables, alors qu'un mail parti
+d'une vraie adresse arrive en boîte de réception. Et le rebond est silencieux : rien ne signale
+que les envois ne parviennent plus. C'est aussi pourquoi les domaines de l'annuaire sont
+vérifiés avant envoi (`outils/verifier-domaines.py`) : vingt d'entre eux n'acceptaient aucun
+courrier.
+
+## Licence et attribution
+
+Code sous licence MIT.
+
+`dordogne.json` est dérivé d'**OpenStreetMap**, sous [licence ODbL](https://opendatacommons.org/licenses/odbl/).
+Cela oblige à deux choses : citer la source — « © les contributeurs OpenStreetMap » — partout où
+ces données sont montrées, et redistribuer sous la même licence toute version modifiée. Les
+communes ont été retrouvées via l'[API Adresse](https://adresse.data.gouv.fr/) de l'État
+([Licence Ouverte 2.0](https://www.etalab.gouv.fr/licence-ouverte-open-licence/)).
+
+`outils/annuaire-dordogne.py`, qui n'est plus utilisé, interroge la base SIRENE, également
+sous Licence Ouverte 2.0.
